@@ -1,0 +1,4 @@
+env: dev
+namespace: dinopark-dev
+assume_role: arn:aws:iam::320464205386:role/dinopark-fossil-role-dev-us-west-2
+aws_region: us-west-2
