@@ -10,6 +10,7 @@ use actix_web::middleware::cors::Cors;
 use actix_web::App;
 use actix_web::HttpResponse;
 use actix_web::Path;
+use actix_web::Query;
 use actix_web::Result;
 use actix_web::State;
 use cis_client::client::CisClientTrait;
@@ -28,6 +29,10 @@ struct Username {
 #[derive(Deserialize)]
 struct Picture {
     picture: String,
+}
+
+#[derive(Deserialize)]
+struct PictureQuery {
     size: String,
 }
 
@@ -54,12 +59,13 @@ fn retrieve_avatar_by_username<T: CisClientTrait + Clone, L: Loader + Clone>(
 fn retrieve_avatar<T: CisClientTrait + Clone, L: Loader + Clone>(
     state: State<Retriever<T, L>>,
     path: Path<Picture>,
+    query: Option<Query<PictureQuery>>,
 ) -> Result<HttpResponse> {
     match retrieve_avatar_from_store(
         &state.avatar_settings,
         &state.loader,
         &path.picture,
-        &path.size,
+        query.as_ref().map(|q| q.size.as_str()),
     ) {
         Ok(b) => Ok(HttpResponse::Ok()
             .content_encoding(ContentEncoding::Identity)
@@ -93,7 +99,7 @@ pub fn retrieve_app<
                 r.method(http::Method::GET)
                     .with(retrieve_avatar_by_username)
             })
-            .resource("/{size}/{picture}", |r| {
+            .resource("/id/{picture}", |r| {
                 r.method(http::Method::GET).with(retrieve_avatar)
             })
             .register()

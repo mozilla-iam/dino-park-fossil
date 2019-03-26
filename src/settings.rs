@@ -5,6 +5,7 @@ use std::env;
 #[derive(Debug, Deserialize, Clone)]
 pub struct AvatarSettings {
     pub s3_bucket: String,
+    pub retrieve_by_id_path: String,
 }
 
 #[derive(Debug, Deserialize)]

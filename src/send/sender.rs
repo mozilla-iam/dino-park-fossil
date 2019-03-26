@@ -17,5 +17,7 @@ pub fn check_resize_store(
     info!("uploading image for {}", uuid);
     let avatars = Avatars::new(&png_from_data_uri(&avatar.data_uri)?)?;
     save(avatars, uuid, &settings.s3_bucket, saver)?;
-    Ok(json!({}))
+    Ok(json!({
+        "url": format!("{}{}.png", settings.retrieve_by_id_path, uuid)
+    }))
 }

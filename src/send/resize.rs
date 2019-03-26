@@ -16,7 +16,7 @@ pub enum ImageProcessingError {
 }
 
 pub struct Avatars {
-    x230: Vec<u8>,
+    x264: Vec<u8>,
     x100: Vec<u8>,
     x40: Vec<u8>,
 }
@@ -30,7 +30,7 @@ impl Avatars {
             return Err(format_err!("wrong ascpect ratio: {}", ratio));
         }
         Ok(Avatars {
-            x230: downsize(230, &img)?,
+            x264: downsize(264, &img)?,
             x100: downsize(100, &img)?,
             x40: downsize(40, &img)?,
         })
@@ -49,8 +49,8 @@ pub fn png_from_data_uri(data_uri: &str) -> Result<Vec<u8>, Error> {
 }
 
 pub fn save(avatars: Avatars, name: &str, bucket: &str, saver: &impl Saver) -> Result<(), Error> {
-    let Avatars { x230, x100, x40 } = avatars;
-    saver.save(name, "230", bucket, x230)?;
+    let Avatars { x264, x100, x40 } = avatars;
+    saver.save(name, "264", bucket, x264)?;
     saver.save(name, "100", bucket, x100)?;
     saver.save(name, "40", bucket, x40)
 }

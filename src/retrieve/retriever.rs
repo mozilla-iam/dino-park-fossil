@@ -15,7 +15,7 @@ pub fn check_and_retrieve_avatar_by_username_from_store(
     info!("{} → {:?}", username, scope);
     let filter = scope.as_ref().map(|s| s.scope.as_str());
     let profile = cis_client.get_user_by(username, &GetBy::PrimaryUsername, filter)?;
-    let buf = loader.load(&profile.uuid.value.unwrap(), "230", &settings.s3_bucket)?;
+    let buf = loader.load(&profile.uuid.value.unwrap(), "264", &settings.s3_bucket)?;
 
     Ok(buf)
 }
@@ -24,7 +24,7 @@ pub fn retrieve_avatar_from_store(
     settings: &AvatarSettings,
     loader: &impl Loader,
     picture: &str,
-    size: &str,
+    size: Option<&str>,
 ) -> Result<Vec<u8>, Error> {
     let id = match (picture.rfind('/'), picture.rfind('.')) {
         (Some(start), Some(end)) => &picture[start..end],
@@ -32,5 +32,6 @@ pub fn retrieve_avatar_from_store(
         (None, Some(end)) => &picture[..end],
         _ => picture,
     };
+    let size = size.unwrap_or_else(|| "264");
     loader.load(id, size, &settings.s3_bucket)
 }
