@@ -60,7 +60,10 @@ pub fn send_app<
             .allowed_header(http::header::CONTENT_TYPE)
             .max_age(3600)
             .resource("/{uuid}", |r| {
-                r.method(http::Method::POST).with(send_avatar)
+                r.method(http::Method::POST)
+                    .with_config(send_avatar, |cfg| {
+                        cfg.2.limit(1_048_576);
+                    })
             })
             .register()
     })
