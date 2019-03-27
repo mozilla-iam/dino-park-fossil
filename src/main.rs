@@ -1,5 +1,6 @@
 extern crate actix;
 extern crate actix_web;
+extern crate base64;
 extern crate chrono;
 extern crate cis_client;
 extern crate cis_profile;
@@ -20,6 +21,7 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
+mod name;
 mod retrieve;
 mod scope;
 mod send;

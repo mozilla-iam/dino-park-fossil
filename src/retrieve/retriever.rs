@@ -1,3 +1,4 @@
+use crate::name::uuid_from_name;
 use crate::retrieve::loader::Loader;
 use crate::scope::Scope;
 use crate::settings::AvatarSettings;
@@ -32,6 +33,7 @@ pub fn retrieve_avatar_from_store(
         (None, Some(end)) => &picture[..end],
         _ => picture,
     };
+    let uuid = uuid_from_name(id)?;
     let size = size.unwrap_or_else(|| "264");
-    loader.load(id, size, &settings.s3_bucket)
+    loader.load(&uuid, size, &settings.s3_bucket)
 }
