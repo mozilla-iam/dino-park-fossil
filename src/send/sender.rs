@@ -57,8 +57,11 @@ pub fn check_resize_store(
     let avatars = Avatars::new(&png_from_data_uri(&avatar.data_uri)?)?;
     let file_name = ExternalFileName::from_uuid_and_display(uuid, &avatar.display);
     if let Some(old_url) = &avatar.old_url {
-        let old_file_name = ExternalFileName::from_uri(&old_url)?.internal.to_string();
-        delete(&old_file_name, &settings.s3_bucket, saver)?;
+        let old_file_name = ExternalFileName::from_uri(&old_url);
+        match old_file_name {
+            Ok(name) => delete(&name.internal.to_string(), &settings.s3_bucket, saver)?,
+            Err(e) => warn!("{} for {}: {}", e, uuid, old_url),
+        }
     }
     save(
         avatars,
