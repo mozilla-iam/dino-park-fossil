@@ -6,6 +6,12 @@ use cis_client::client::CisClientTrait;
 use cis_client::client::GetBy;
 use failure::Error;
 
+#[derive(Debug, Fail)]
+pub enum RetrieverError {
+    #[fail(display = "no picture for username")]
+    NoPictureForUsername,
+}
+
 pub fn check_and_retrieve_avatar_by_username_from_store(
     cis_client: &impl CisClientTrait,
     settings: &AvatarSettings,
@@ -16,9 +22,12 @@ pub fn check_and_retrieve_avatar_by_username_from_store(
     info!("{} → {:?}", username, scope);
     let filter = scope.as_ref().map(|s| s.scope.as_str());
     let profile = cis_client.get_user_by(username, &GetBy::PrimaryUsername, filter)?;
-    let buf = loader.load(&profile.uuid.value.unwrap(), "264", &settings.s3_bucket)?;
-
-    Ok(buf)
+    if let Some(picture) = profile.picture.value {
+        let name = ExternalFileName::from_uri(&picture)?.internal.to_string();
+        let buf = loader.load(&name, "264", &settings.s3_bucket)?;
+        return Ok(buf);
+    }
+    Err(RetrieverError::NoPictureForUsername.into())
 }
 
 pub fn retrieve_avatar_from_store(

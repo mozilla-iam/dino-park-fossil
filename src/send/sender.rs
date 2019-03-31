@@ -1,21 +1,58 @@
 use crate::send::app::Avatar;
-use crate::send::resize::delete;
+use crate::send::app::ChangeDisplay;
+use crate::send::operations::delete;
+use crate::send::operations::rename;
+use crate::send::operations::save;
 use crate::send::resize::png_from_data_uri;
-use crate::send::resize::save;
 use crate::send::resize::Avatars;
 use crate::settings::AvatarSettings;
+use crate::storage::loader::Loader;
 use crate::storage::name::ExternalFileName;
 use crate::storage::saver::Saver;
 use failure::Error;
-use serde_json::json;
-use serde_json::Value;
+
+#[derive(Debug, Fail)]
+pub enum SaveError {
+    #[fail(display = "uuid mismatch")]
+    UuidMismatch,
+}
+
+#[derive(Serialize)]
+pub struct PictureUrl {
+    pub url: String,
+}
+
+pub fn change_display_level(
+    settings: &AvatarSettings,
+    loader: &impl Loader,
+    saver: &impl Saver,
+    uuid: &str,
+    change_display: &ChangeDisplay,
+) -> Result<PictureUrl, Error> {
+    info!("changing display level for {}", uuid);
+    let old_file_name = ExternalFileName::from_uri(&change_display.old_url)?;
+    let file_name = ExternalFileName::from_uuid_and_display(uuid, &change_display.display);
+    if old_file_name.internal.uuid_hash != file_name.internal.uuid_hash {
+        return Err(SaveError::UuidMismatch.into());
+    }
+    rename(
+        &old_file_name.internal.to_string(),
+        &file_name.internal.to_string(),
+        &settings.s3_bucket,
+        saver,
+        loader,
+    )?;
+    Ok(PictureUrl {
+        url: format!("{}{}", settings.retrieve_by_id_path, &file_name.filename()),
+    })
+}
 
 pub fn check_resize_store(
     settings: &AvatarSettings,
     saver: &impl Saver,
     uuid: &str,
     avatar: &Avatar,
-) -> Result<Value, Error> {
+) -> Result<PictureUrl, Error> {
     info!("uploading image for {}", uuid);
     let avatars = Avatars::new(&png_from_data_uri(&avatar.data_uri)?)?;
     let file_name = ExternalFileName::from_uuid_and_display(uuid, &avatar.display);
@@ -29,9 +66,9 @@ pub fn check_resize_store(
         &settings.s3_bucket,
         saver,
     )?;
-    Ok(json!({
-        "url": format!("{}{}", settings.retrieve_by_id_path, &file_name.filename())
-    }))
+    Ok(PictureUrl {
+        url: format!("{}{}", settings.retrieve_by_id_path, &file_name.filename()),
+    })
 }
 
 #[cfg(test)]
@@ -43,7 +80,7 @@ mod test {
         save: bool,
     }
     impl Saver for DummySaver {
-        fn save(&self, name: &str, _: &str, _: &str, _: Vec<u8>) -> Result<(), Error> {
+        fn save(&self, _: &str, _: &str, _: &str, _: Vec<u8>) -> Result<(), Error> {
             match self.save {
                 true => Ok(()),
                 false => Err(format_err!("doom")),

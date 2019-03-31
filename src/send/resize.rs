@@ -1,4 +1,3 @@
-use crate::storage::saver::Saver;
 use data_url::DataUrl;
 use failure::Error;
 use image::DynamicImage;
@@ -16,9 +15,9 @@ pub enum ImageProcessingError {
 }
 
 pub struct Avatars {
-    x264: Vec<u8>,
-    x100: Vec<u8>,
-    x40: Vec<u8>,
+    pub x264: Vec<u8>,
+    pub x100: Vec<u8>,
+    pub x40: Vec<u8>,
 }
 
 impl Avatars {
@@ -46,19 +45,6 @@ pub fn png_from_data_uri(data_uri: &str) -> Result<Vec<u8>, Error> {
         .decode_to_vec()
         .map_err(|_| ImageProcessingError::InvalidBase64)?;
     Ok(buf)
-}
-
-pub fn delete(name: &str, bucket: &str, saver: &impl Saver) -> Result<(), Error> {
-    saver.delete(name, "264", bucket)?;
-    saver.delete(name, "100", bucket)?;
-    saver.delete(name, "40", bucket)
-}
-
-pub fn save(avatars: Avatars, name: &str, bucket: &str, saver: &impl Saver) -> Result<(), Error> {
-    let Avatars { x264, x100, x40 } = avatars;
-    saver.save(name, "264", bucket, x264)?;
-    saver.save(name, "100", bucket, x100)?;
-    saver.save(name, "40", bucket, x40)
 }
 
 fn downsize(size: u32, img: &DynamicImage) -> Result<Vec<u8>, Error> {

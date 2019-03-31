@@ -3,8 +3,6 @@ use rusoto_s3::DeleteObjectRequest;
 use rusoto_s3::PutObjectRequest;
 use rusoto_s3::S3;
 
-static FILE_ENDING: &'static str = "png";
-
 pub trait Saver {
     fn save(&self, name: &str, prefix: &str, bucket: &str, buf: Vec<u8>) -> Result<(), Error>;
     fn delete(&self, name: &str, prefix: &str, bucket: &str) -> Result<(), Error>;
@@ -19,7 +17,7 @@ impl<S: S3> Saver for S3Saver<S> {
     fn save(&self, name: &str, prefix: &str, bucket: &str, buf: Vec<u8>) -> Result<(), Error> {
         let put = PutObjectRequest {
             bucket: bucket.to_owned(),
-            key: format!("{}/{}.{}", prefix, name, FILE_ENDING),
+            key: format!("{}/{}", prefix, name),
             body: Some(buf.into()),
             ..Default::default()
         };
@@ -35,7 +33,7 @@ impl<S: S3> Saver for S3Saver<S> {
     fn delete(&self, name: &str, prefix: &str, bucket: &str) -> Result<(), Error> {
         let delete = DeleteObjectRequest {
             bucket: bucket.to_owned(),
-            key: format!("{}/{}.{}", prefix, name, FILE_ENDING),
+            key: format!("{}/{}", prefix, name),
             ..Default::default()
         };
         let res = self.s3_client.delete_object(delete).sync()?;

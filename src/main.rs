@@ -58,9 +58,14 @@ fn main() -> Result<(), String> {
             retrieve_app(cis_client.clone(), avatar_settings.clone(), loader.clone())
                 .middleware(middleware::Logger::default())
                 .boxed(),
-            send_app(cis_client.clone(), avatar_settings.clone(), saver.clone())
-                .middleware(middleware::Logger::default())
-                .boxed(),
+            send_app(
+                cis_client.clone(),
+                avatar_settings.clone(),
+                saver.clone(),
+                loader.clone(),
+            )
+            .middleware(middleware::Logger::default())
+            .boxed(),
         ]
     })
     .bind("0.0.0.0:8083")

@@ -47,8 +47,8 @@ impl ExternalFileName {
     }
     pub fn from_uri(uri: &str) -> Result<Self, Error> {
         let encoded = match (uri.rfind('/'), uri.rfind('.')) {
-            (Some(start), Some(end)) => &uri[start..end],
-            (Some(start), None) => &uri[start..],
+            (Some(start), Some(end)) => &uri[start + 1..end],
+            (Some(start), None) => &uri[start + 1..],
             (None, Some(end)) => &uri[..end],
             _ => uri,
         };
