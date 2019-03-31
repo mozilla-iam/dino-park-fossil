@@ -1,10 +1,11 @@
-use crate::name::name_from_uuid;
 use crate::send::app::Avatar;
+use crate::send::resize::delete;
 use crate::send::resize::png_from_data_uri;
 use crate::send::resize::save;
 use crate::send::resize::Avatars;
-use crate::send::saver::Saver;
 use crate::settings::AvatarSettings;
+use crate::storage::name::ExternalFileName;
+use crate::storage::saver::Saver;
 use failure::Error;
 use serde_json::json;
 use serde_json::Value;
@@ -17,9 +18,86 @@ pub fn check_resize_store(
 ) -> Result<Value, Error> {
     info!("uploading image for {}", uuid);
     let avatars = Avatars::new(&png_from_data_uri(&avatar.data_uri)?)?;
-    let name = name_from_uuid(uuid);
-    save(avatars, &name, &settings.s3_bucket, saver)?;
+    let file_name = ExternalFileName::from_uuid_and_display(uuid, &avatar.display);
+    if let Some(old_url) = &avatar.old_url {
+        let old_file_name = ExternalFileName::from_uri(&old_url)?.internal.to_string();
+        delete(&old_file_name, &settings.s3_bucket, saver)?;
+    }
+    save(
+        avatars,
+        &file_name.internal.to_string(),
+        &settings.s3_bucket,
+        saver,
+    )?;
     Ok(json!({
-        "url": format!("{}{}.png", settings.retrieve_by_id_path, name)
+        "url": format!("{}{}", settings.retrieve_by_id_path, &file_name.filename())
     }))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    struct DummySaver {
+        delete: bool,
+        save: bool,
+    }
+    impl Saver for DummySaver {
+        fn save(&self, name: &str, _: &str, _: &str, _: Vec<u8>) -> Result<(), Error> {
+            match self.save {
+                true => Ok(()),
+                false => Err(format_err!("doom")),
+            }
+        }
+        fn delete(&self, _: &str, _: &str, _: &str) -> Result<(), Error> {
+            match self.delete {
+                true => Ok(()),
+                false => Err(format_err!("doom")),
+            }
+        }
+    }
+
+    #[test]
+    fn test_check_resize_store_without_old() -> Result<(), Error> {
+        let data = include_str!("../../tests/data/dino.data");
+        let settings = AvatarSettings {
+            s3_bucket: String::from("testing"),
+            retrieve_by_id_path: String::from("/api/v666"),
+        };
+        let saver = DummySaver {
+            delete: true,
+            save: true,
+        };
+        let uuid = "9e697947-2990-4182-b080-533c16af4799";
+        let avatar = Avatar {
+            data_uri: String::from(data),
+            display: String::from("private"),
+            old_url: None,
+        };
+        check_resize_store(&settings, &saver, uuid, &avatar)?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_check_resize_store_with_old() -> Result<(), Error> {
+        let data = include_str!("../../tests/data/dino.data");
+        let settings = AvatarSettings {
+            s3_bucket: String::from("testing"),
+            retrieve_by_id_path: String::from("/api/v666"),
+        };
+        let saver = DummySaver {
+            delete: true,
+            save: true,
+        };
+        let uuid = "9e697947-2990-4182-b080-533c16af4799";
+        let avatar = Avatar {
+            data_uri: String::from(data),
+            display: String::from("private"),
+            old_url: Some(String::from(
+                "MmU5ODFiODZkNWY3N2Y1NDY2ZWM1NmUyYjQwM2RlYWUyOTI3MGYwMDllOGFmZGE1ODNjZjEyNzQ3YjQ0NzQyNiNzdGFmZiMxNTU0MDQ1OTgz.png",
+            )),
+        };
+        check_resize_store(&settings, &saver, uuid, &avatar)?;
+        Ok(())
+    }
 }

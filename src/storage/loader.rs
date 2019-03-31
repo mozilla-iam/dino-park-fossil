@@ -10,8 +10,6 @@ pub enum S3Error {
     NoBody,
 }
 
-static FILE_ENDING: &'static str = "png";
-
 pub trait Loader {
     fn load(&self, name: &str, prefix: &str, bucket: &str) -> Result<Vec<u8>, Error>;
 }
@@ -25,7 +23,7 @@ impl<S: S3> Loader for S3Loader<S> {
     fn load(&self, name: &str, prefix: &str, bucket: &str) -> Result<Vec<u8>, Error> {
         let download = GetObjectRequest {
             bucket: bucket.to_owned(),
-            key: format!("{}/{}.{}", prefix, name, FILE_ENDING),
+            key: format!("{}/{}", prefix, name),
             ..Default::default()
         };
         let res = self.s3_client.get_object(download).sync()?;

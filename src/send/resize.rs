@@ -1,4 +1,4 @@
-use crate::send::saver::Saver;
+use crate::storage::saver::Saver;
 use data_url::DataUrl;
 use failure::Error;
 use image::DynamicImage;
@@ -46,6 +46,12 @@ pub fn png_from_data_uri(data_uri: &str) -> Result<Vec<u8>, Error> {
         .decode_to_vec()
         .map_err(|_| ImageProcessingError::InvalidBase64)?;
     Ok(buf)
+}
+
+pub fn delete(name: &str, bucket: &str, saver: &impl Saver) -> Result<(), Error> {
+    saver.delete(name, "264", bucket)?;
+    saver.delete(name, "100", bucket)?;
+    saver.delete(name, "40", bucket)
 }
 
 pub fn save(avatars: Avatars, name: &str, bucket: &str, saver: &impl Saver) -> Result<(), Error> {

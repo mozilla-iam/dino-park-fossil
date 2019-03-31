@@ -1,6 +1,6 @@
-use crate::send::saver::Saver;
 use crate::send::sender::check_resize_store;
 use crate::settings::AvatarSettings;
+use crate::storage::saver::Saver;
 use actix_web::error;
 use actix_web::http;
 use actix_web::middleware::cors::Cors;
@@ -26,6 +26,8 @@ struct Uuid {
 #[derive(Deserialize)]
 pub struct Avatar {
     pub data_uri: String,
+    pub display: String,
+    pub old_url: Option<String>,
 }
 
 fn send_avatar<T: CisClientTrait + Clone, S: Saver + Clone>(

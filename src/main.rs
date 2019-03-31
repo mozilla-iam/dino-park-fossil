@@ -13,6 +13,7 @@ extern crate reqwest;
 extern crate rusoto_core;
 extern crate rusoto_s3;
 extern crate serde;
+extern crate sha2;
 
 #[macro_use]
 extern crate failure;
@@ -21,14 +22,14 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
-mod name;
 mod retrieve;
 mod scope;
 mod send;
 mod settings;
+mod storage;
 
-use crate::retrieve::loader::S3Loader;
-use crate::send::saver::S3Saver;
+use crate::storage::loader::S3Loader;
+use crate::storage::saver::S3Saver;
 use actix_web::middleware;
 use actix_web::server;
 use cis_client::client::CisClient;
