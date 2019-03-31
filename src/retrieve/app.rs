@@ -1,8 +1,8 @@
-use crate::retrieve::loader::Loader;
 use crate::retrieve::retriever::check_and_retrieve_avatar_by_username_from_store;
 use crate::retrieve::retriever::retrieve_avatar_from_store;
 use crate::scope::Scope;
 use crate::settings::AvatarSettings;
+use crate::storage::loader::Loader;
 use actix_web::error;
 use actix_web::http;
 use actix_web::http::ContentEncoding;

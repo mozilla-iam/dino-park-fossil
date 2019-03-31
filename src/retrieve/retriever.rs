@@ -1,10 +1,16 @@
-use crate::name::uuid_from_name;
-use crate::retrieve::loader::Loader;
 use crate::scope::Scope;
 use crate::settings::AvatarSettings;
+use crate::storage::loader::Loader;
+use crate::storage::name::ExternalFileName;
 use cis_client::client::CisClientTrait;
 use cis_client::client::GetBy;
 use failure::Error;
+
+#[derive(Debug, Fail)]
+pub enum RetrieverError {
+    #[fail(display = "no picture for username")]
+    NoPictureForUsername,
+}
 
 pub fn check_and_retrieve_avatar_by_username_from_store(
     cis_client: &impl CisClientTrait,
@@ -16,9 +22,12 @@ pub fn check_and_retrieve_avatar_by_username_from_store(
     info!("{} → {:?}", username, scope);
     let filter = scope.as_ref().map(|s| s.scope.as_str());
     let profile = cis_client.get_user_by(username, &GetBy::PrimaryUsername, filter)?;
-    let buf = loader.load(&profile.uuid.value.unwrap(), "264", &settings.s3_bucket)?;
-
-    Ok(buf)
+    if let Some(picture) = profile.picture.value {
+        let name = ExternalFileName::from_uri(&picture)?.internal.to_string();
+        let buf = loader.load(&name, "264", &settings.s3_bucket)?;
+        return Ok(buf);
+    }
+    Err(RetrieverError::NoPictureForUsername.into())
 }
 
 pub fn retrieve_avatar_from_store(
@@ -27,13 +36,7 @@ pub fn retrieve_avatar_from_store(
     picture: &str,
     size: Option<&str>,
 ) -> Result<Vec<u8>, Error> {
-    let id = match (picture.rfind('/'), picture.rfind('.')) {
-        (Some(start), Some(end)) => &picture[start..end],
-        (Some(start), None) => &picture[start..],
-        (None, Some(end)) => &picture[..end],
-        _ => picture,
-    };
-    let uuid = uuid_from_name(id)?;
+    let name = ExternalFileName::from_uri(picture)?.internal.to_string();
     let size = size.unwrap_or_else(|| "264");
-    loader.load(&uuid, size, &settings.s3_bucket)
+    loader.load(&name, size, &settings.s3_bucket)
 }

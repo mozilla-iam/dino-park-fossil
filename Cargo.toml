@@ -25,4 +25,4 @@ failure = "0.1.5"
 failure_derive = "0.1.5"
 data-url = "0.1.0"
 base64 = "0.10"
-
+sha2 = "0.8"
