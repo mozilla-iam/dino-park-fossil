@@ -36,6 +36,10 @@ spec:
               value: "/data/.settings.json"
             - name: AWS_DEFAULT_REGION
               value: "{{ .Values.aws_region | default "us-west-2" }}"
+            - name: AVATAR__S3_BUCKET
+              value: "{{ .Values.s3_bucket }}"
+            - name: AVATAR__RETRIEVE_BY_ID_PATH
+              value: "{{ .Values.retrieve_by_id_path }}"
           volumeMounts:
             - name: settings-secrets
               mountPath: "/data"
