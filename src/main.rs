@@ -23,6 +23,7 @@ extern crate log;
 extern crate serde_derive;
 
 mod retrieve;
+mod scale;
 mod scope;
 mod send;
 mod settings;
@@ -34,6 +35,7 @@ use actix_web::middleware;
 use actix_web::server;
 use cis_client::client::CisClient;
 use retrieve::app::retrieve_app;
+use scale::app::scale_app;
 use send::app::send_app;
 
 fn main() -> Result<(), String> {
@@ -66,6 +68,9 @@ fn main() -> Result<(), String> {
             )
             .middleware(middleware::Logger::default())
             .boxed(),
+            scale_app()
+                .middleware(middleware::Logger::default())
+                .boxed(),
         ]
     })
     .bind("0.0.0.0:8083")
