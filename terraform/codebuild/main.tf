@@ -45,7 +45,7 @@ resource "aws_codebuild_project" "build" {
 # Unomment this section if you do want to build automatically on push
 resource "aws_codebuild_webhook" "webhook" {
   project_name  = "${aws_codebuild_project.build.name}"
-  branch_filter = "^refs/heads/master$"
+  branch_filter = "^master$"
 }
 
 #---
