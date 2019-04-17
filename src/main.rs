@@ -22,6 +22,7 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
+mod healthz;
 mod retrieve;
 mod scale;
 mod scope;
@@ -29,6 +30,7 @@ mod send;
 mod settings;
 mod storage;
 
+use crate::healthz::healthz_app;
 use crate::storage::loader::S3Loader;
 use crate::storage::saver::S3Saver;
 use actix_web::middleware;
@@ -69,6 +71,9 @@ fn main() -> Result<(), String> {
             .middleware(middleware::Logger::default())
             .boxed(),
             scale_app()
+                .middleware(middleware::Logger::default())
+                .boxed(),
+            healthz_app()
                 .middleware(middleware::Logger::default())
                 .boxed(),
         ]
