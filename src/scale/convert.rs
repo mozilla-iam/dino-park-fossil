@@ -1,7 +1,7 @@
 use actix_multipart::Field;
 use actix_multipart::Multipart;
 use actix_multipart::MultipartError;
-use actix_web::dev;
+
 use actix_web::error;
 use actix_web::web::Bytes;
 use failure::Error;

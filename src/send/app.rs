@@ -16,17 +16,6 @@ use actix_web::Result;
 use cis_client::sync::client::CisClientTrait;
 use std::sync::Arc;
 
-pub struct Sender<
-    T: CisClientTrait + Clone + 'static,
-    S: Saver + Clone + 'static,
-    L: Loader + Clone + 'static,
-> {
-    pub cis_client: T,
-    pub avatar_settings: AvatarSettings,
-    pub saver: S,
-    pub loader: L,
-}
-
 #[derive(Deserialize)]
 struct Uuid {
     uuid: String,
@@ -58,7 +47,7 @@ fn send_avatar<S: Saver + Clone, L: Loader + Clone>(
 }
 
 fn update_display<T: CisClientTrait + Clone, S: Saver + Clone, L: Loader + Clone>(
-    cis_client: Data<Arc<T>>,
+    _cis_client: Data<Arc<T>>,
     avatar_settings: Data<AvatarSettings>,
     loader: Data<Arc<L>>,
     saver: Data<Arc<S>>,

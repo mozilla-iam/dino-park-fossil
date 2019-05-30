@@ -30,10 +30,9 @@ mod send;
 mod settings;
 mod storage;
 
-use crate::healthz::healthz_app;
 use crate::storage::loader::S3Loader;
 use crate::storage::saver::S3Saver;
-use actix_web::middleware;
+
 use actix_web::middleware::Logger;
 use actix_web::web;
 use actix_web::App;

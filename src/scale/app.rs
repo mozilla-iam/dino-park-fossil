@@ -1,19 +1,16 @@
 use crate::scale::convert::handle_multipart_item;
 use actix_multipart::Multipart;
 use actix_web::dev::HttpServiceFactory;
-use actix_web::error;
+
 use actix_web::http;
 use actix_web::http::ContentEncoding;
 use actix_web::middleware::cors::Cors;
 use actix_web::middleware::BodyEncoding;
 use actix_web::web;
 use actix_web::web::Path;
-use actix_web::FromRequest;
-use actix_web::HttpRequest;
 use actix_web::HttpResponse;
 use failure::Error;
 use futures::Future;
-use futures::Stream;
 
 pub fn echo(
     size: Path<u32>,
@@ -21,7 +18,7 @@ pub fn echo(
 ) -> Box<dyn Future<Item = HttpResponse, Error = Error>> {
     Box::new(
         handle_multipart_item(*size, multipart)
-            .map(|mut b| {
+            .map(|b| {
                 HttpResponse::Ok()
                     .encoding(ContentEncoding::Identity)
                     .header("content-type", "image/png")
