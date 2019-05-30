@@ -34,7 +34,7 @@ impl<S: S3> Loader for S3Loader<S> {
             res.version_id.unwrap_or_else(|| String::from("-")),
         );
         if let Some(body) = res.body {
-            let buf: Vec<u8> = body.concat2().wait()?;
+            let buf: Vec<u8> = body.concat2().wait()?.to_vec();
             Ok(buf)
         } else {
             Err(S3Error::NoBody.into())
