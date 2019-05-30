@@ -1,4 +1,4 @@
-extern crate actix;
+extern crate actix_multipart;
 extern crate actix_web;
 extern crate base64;
 extern crate chrono;
@@ -34,55 +34,53 @@ use crate::healthz::healthz_app;
 use crate::storage::loader::S3Loader;
 use crate::storage::saver::S3Saver;
 use actix_web::middleware;
-use actix_web::server;
-use cis_client::client::CisClient;
+use actix_web::middleware::Logger;
+use actix_web::web;
+use actix_web::App;
+use actix_web::HttpServer;
+use cis_client::CisClient;
+use failure::Error;
 use retrieve::app::retrieve_app;
 use scale::app::scale_app;
 use send::app::send_app;
+use std::sync::Arc;
 
-fn main() -> Result<(), String> {
+fn main() -> Result<(), Error> {
     ::std::env::set_var("RUST_LOG", "actix_web=info,dino_park_fossil=info");
     env_logger::init();
     info!("building the fossil");
-    let sys = actix::System::new("dino-park-fossil");
-    let s = settings::Settings::new().map_err(|e| format!("unable to load settings: {}", e))?;
-    let cis_client = CisClient::from_settings(&s.cis)
-        .map_err(|e| format!("unable to create cis_client: {}", e))?;
+    let s = settings::Settings::new()?;
+    let cis_client = Arc::new(CisClient::from_settings(&s.cis)?);
     let avatar_settings = s.avatar.clone();
     let s3_client = rusoto_s3::S3Client::new(rusoto_core::Region::default());
-    let saver = S3Saver {
+    let saver = Arc::new(S3Saver {
         s3_client: s3_client.clone(),
-    };
-    let loader = S3Loader {
+    });
+    let loader = Arc::new(S3Loader {
         s3_client: s3_client.clone(),
-    };
+    });
     // Start http server
-    server::new(move || {
-        vec![
-            retrieve_app(cis_client.clone(), avatar_settings.clone(), loader.clone())
-                .middleware(middleware::Logger::default())
-                .boxed(),
-            send_app(
-                cis_client.clone(),
-                avatar_settings.clone(),
-                saver.clone(),
-                loader.clone(),
+    HttpServer::new(move || {
+        App::new()
+            .wrap(Logger::default().exclude("/healthz"))
+            .service(
+                web::scope("/avatar/")
+                    .service(scale_app())
+                    .service(retrieve_app(
+                        Arc::clone(&cis_client),
+                        avatar_settings.clone(),
+                        Arc::clone(&loader),
+                    ))
+                    .service(send_app(
+                        Arc::clone(&cis_client),
+                        avatar_settings.clone(),
+                        Arc::clone(&saver),
+                        Arc::clone(&loader),
+                    )),
             )
-            .middleware(middleware::Logger::default())
-            .boxed(),
-            scale_app()
-                .middleware(middleware::Logger::default())
-                .boxed(),
-            healthz_app()
-                .middleware(middleware::Logger::default())
-                .boxed(),
-        ]
+            .service(healthz::healthz_app())
     })
-    .bind("0.0.0.0:8083")
-    .unwrap()
-    .start();
-
-    info!("Started http server");
-    let _ = sys.run();
-    Ok(())
+    .bind("0.0.0.0:8083")?
+    .run()
+    .map_err(Into::into)
 }

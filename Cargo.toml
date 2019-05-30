@@ -5,10 +5,10 @@ authors = ["Florian Merz <flomerz@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-cis_profile = { git = "https://github.com/fiji-flo/cis_profile-rust", version = "0.0.2", features = ["graphql", "aws", "vendored"] }
-cis_client = { git = "https://github.com/fiji-flo/cis_client-rust", version = "0.0.2" }
-actix = "0.7"
-actix-web = "0.7"
+cis_client = { git = "https://github.com/fiji-flo/cis_client-rust", branch = "async", version = "0.1.0-beta.1" }
+cis_profile = { git = "https://github.com/fiji-flo/cis_profile-rust", branch = "ring-14", version = "0.0.3" }
+actix-web = { version = "1.0.0-rc", features = ["ssl"] }
+actix-multipart = "0.1.1"
 futures = "0.1"
 log = "0.4"
 env_logger = "0.6"
@@ -18,8 +18,8 @@ serde_derive = "1.0.80"
 reqwest = "0.9.8"
 chrono = "0.4.6"
 config = "0.9"
-rusoto_core = "0.37.0"
-rusoto_s3 = "0.37.0"
+rusoto_core = "0.38.0"
+rusoto_s3 = "0.38.0"
 image = "0.21.0"
 failure = "0.1.5"
 failure_derive = "0.1.5"

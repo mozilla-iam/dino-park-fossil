@@ -4,15 +4,17 @@ use crate::send::sender::PictureUrl;
 use crate::settings::AvatarSettings;
 use crate::storage::loader::Loader;
 use crate::storage::saver::Saver;
+use actix_web::dev::HttpServiceFactory;
 use actix_web::error;
 use actix_web::http;
 use actix_web::middleware::cors::Cors;
-use actix_web::App;
-use actix_web::Json;
-use actix_web::Path;
+use actix_web::web;
+use actix_web::web::Data;
+use actix_web::web::Json;
+use actix_web::web::Path;
 use actix_web::Result;
-use actix_web::State;
-use cis_client::client::CisClientTrait;
+use cis_client::sync::client::CisClientTrait;
+use std::sync::Arc;
 
 pub struct Sender<
     T: CisClientTrait + Clone + 'static,
@@ -43,29 +45,27 @@ pub struct ChangeDisplay {
     pub old_url: String,
 }
 
-fn send_avatar<T: CisClientTrait + Clone, S: Saver + Clone, L: Loader + Clone>(
-    state: State<Sender<T, S, L>>,
+fn send_avatar<S: Saver + Clone, L: Loader + Clone>(
+    avatar_settings: Data<AvatarSettings>,
+    saver: Data<Arc<S>>,
     path: Path<Uuid>,
     body: Json<Avatar>,
 ) -> Result<Json<PictureUrl>> {
-    match check_resize_store(&state.avatar_settings, &state.saver, &path.uuid, &body) {
+    match check_resize_store(&avatar_settings, &saver, &path.uuid, &body) {
         Ok(v) => Ok(Json(v)),
         Err(e) => Err(error::ErrorBadRequest(e)),
     }
 }
 
 fn update_display<T: CisClientTrait + Clone, S: Saver + Clone, L: Loader + Clone>(
-    state: State<Sender<T, S, L>>,
+    cis_client: Data<Arc<T>>,
+    avatar_settings: Data<AvatarSettings>,
+    loader: Data<Arc<L>>,
+    saver: Data<Arc<S>>,
     path: Path<Uuid>,
     body: Json<ChangeDisplay>,
 ) -> Result<Json<PictureUrl>> {
-    match change_display_level(
-        &state.avatar_settings,
-        &state.loader,
-        &state.saver,
-        &path.uuid,
-        &body,
-    ) {
+    match change_display_level(&avatar_settings, &loader, &saver, &path.uuid, &body) {
         Ok(v) => Ok(Json(v)),
         Err(e) => Err(error::ErrorBadRequest(e)),
     }
@@ -76,33 +76,27 @@ pub fn send_app<
     S: Saver + Clone + Send + Sync + 'static,
     L: Loader + Clone + Send + Sync + 'static,
 >(
-    cis_client: T,
+    cis_client: Arc<T>,
     avatar_settings: AvatarSettings,
-    saver: S,
-    loader: L,
-) -> App<Sender<T, S, L>> {
-    App::with_state(Sender {
-        cis_client,
-        avatar_settings,
-        saver,
-        loader,
-    })
-    .prefix("/avatar/send")
-    .configure(|app| {
-        Cors::for_app(app)
-            .allowed_methods(vec!["POST"])
-            .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-            .allowed_header(http::header::CONTENT_TYPE)
-            .max_age(3600)
-            .resource("/{uuid}", |r| {
-                r.method(http::Method::POST)
-                    .with_config(send_avatar, |cfg| {
-                        cfg.2.limit(1_048_576);
-                    })
-            })
-            .resource("/display/{uuid}", |r| {
-                r.method(http::Method::POST).with(update_display)
-            })
-            .register()
-    })
+    saver: Arc<S>,
+    loader: Arc<L>,
+) -> impl HttpServiceFactory {
+    web::scope("/send/")
+        .wrap(
+            Cors::new()
+                .allowed_methods(vec!["POST"])
+                .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                .allowed_header(http::header::CONTENT_TYPE)
+                .max_age(3600),
+        )
+        .data(loader)
+        .data(saver)
+        .data(avatar_settings)
+        .data(cis_client)
+        .service(
+            web::resource("/{uuid]")
+                .data(web::JsonConfig::default().limit(1_048_576))
+                .route(web::post().to(send_avatar::<S, L>)),
+        )
+        .service(web::resource("/display/{uuid}").route(web::post().to(update_display::<T, S, L>)))
 }

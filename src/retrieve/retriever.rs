@@ -2,9 +2,10 @@ use crate::scope::Scope;
 use crate::settings::AvatarSettings;
 use crate::storage::loader::Loader;
 use crate::storage::name::ExternalFileName;
-use cis_client::client::CisClientTrait;
-use cis_client::client::GetBy;
+use cis_client::getby::GetBy;
+use cis_client::sync::client::CisClientTrait;
 use failure::Error;
+use std::sync::Arc;
 
 #[derive(Debug, Fail)]
 pub enum RetrieverError {
@@ -13,9 +14,9 @@ pub enum RetrieverError {
 }
 
 pub fn check_and_retrieve_avatar_by_username_from_store(
-    cis_client: &impl CisClientTrait,
+    cis_client: &Arc<impl CisClientTrait>,
     settings: &AvatarSettings,
-    loader: &impl Loader,
+    loader: &Arc<impl Loader>,
     username: &str,
     scope: &Option<Scope>,
 ) -> Result<Vec<u8>, Error> {
@@ -32,7 +33,7 @@ pub fn check_and_retrieve_avatar_by_username_from_store(
 
 pub fn retrieve_avatar_from_store(
     settings: &AvatarSettings,
-    loader: &impl Loader,
+    loader: &Arc<impl Loader>,
     picture: &str,
     size: Option<&str>,
 ) -> Result<Vec<u8>, Error> {

@@ -10,6 +10,7 @@ use crate::storage::loader::Loader;
 use crate::storage::name::ExternalFileName;
 use crate::storage::saver::Saver;
 use failure::Error;
+use std::sync::Arc;
 
 #[derive(Debug, Fail)]
 pub enum SaveError {
@@ -24,8 +25,8 @@ pub struct PictureUrl {
 
 pub fn change_display_level(
     settings: &AvatarSettings,
-    loader: &impl Loader,
-    saver: &impl Saver,
+    loader: &Arc<impl Loader>,
+    saver: &Arc<impl Saver>,
     uuid: &str,
     change_display: &ChangeDisplay,
 ) -> Result<PictureUrl, Error> {
@@ -49,7 +50,7 @@ pub fn change_display_level(
 
 pub fn check_resize_store(
     settings: &AvatarSettings,
-    saver: &impl Saver,
+    saver: &Arc<impl Saver>,
     uuid: &str,
     avatar: &Avatar,
 ) -> Result<PictureUrl, Error> {
@@ -104,10 +105,10 @@ mod test {
             s3_bucket: String::from("testing"),
             retrieve_by_id_path: String::from("/api/v666"),
         };
-        let saver = DummySaver {
+        let saver = Arc::new(DummySaver {
             delete: true,
             save: true,
-        };
+        });
         let uuid = "9e697947-2990-4182-b080-533c16af4799";
         let avatar = Avatar {
             data_uri: String::from(data),
@@ -125,10 +126,10 @@ mod test {
             s3_bucket: String::from("testing"),
             retrieve_by_id_path: String::from("/api/v666"),
         };
-        let saver = DummySaver {
+        let saver = Arc::new(DummySaver {
             delete: true,
             save: true,
-        };
+        });
         let uuid = "9e697947-2990-4182-b080-533c16af4799";
         let avatar = Avatar {
             data_uri: String::from(data),
