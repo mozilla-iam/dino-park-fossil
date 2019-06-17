@@ -28,7 +28,7 @@ pub fn echo(
     )
 }
 pub fn scale_app() -> impl HttpServiceFactory {
-    web::scope("/scale/")
+    web::scope("/scale")
         .wrap(
             Cors::new()
                 .allowed_methods(vec!["POST"])

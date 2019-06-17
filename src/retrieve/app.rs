@@ -86,7 +86,7 @@ pub fn retrieve_app<
     avatar_settings: AvatarSettings,
     loader: Arc<L>,
 ) -> impl HttpServiceFactory {
-    web::scope("/get/")
+    web::scope("/get")
         .wrap(
             Cors::new()
                 .allowed_methods(vec!["GET"])

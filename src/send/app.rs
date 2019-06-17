@@ -13,7 +13,6 @@ use actix_web::web::Data;
 use actix_web::web::Json;
 use actix_web::web::Path;
 use actix_web::Error;
-use cis_client::sync::client::CisClientTrait;
 use futures::Future;
 use std::sync::Arc;
 
@@ -46,8 +45,7 @@ fn send_avatar<S: Saver + Clone, L: Loader + Clone>(
         .map_err(error::ErrorBadRequest)
 }
 
-fn update_display<T: CisClientTrait + Clone, S: Saver + Clone, L: Loader + Clone>(
-    _cis_client: Data<Arc<T>>,
+fn update_display<S: Saver + Clone, L: Loader + Clone>(
     avatar_settings: Data<AvatarSettings>,
     loader: Data<Arc<L>>,
     saver: Data<Arc<S>>,
@@ -60,16 +58,14 @@ fn update_display<T: CisClientTrait + Clone, S: Saver + Clone, L: Loader + Clone
 }
 
 pub fn send_app<
-    T: CisClientTrait + Clone + Send + Sync + 'static,
     S: Saver + Clone + Send + Sync + 'static,
     L: Loader + Clone + Send + Sync + 'static,
 >(
-    cis_client: Arc<T>,
     avatar_settings: AvatarSettings,
     saver: Arc<S>,
     loader: Arc<L>,
 ) -> impl HttpServiceFactory {
-    web::scope("/send/")
+    web::scope("/send")
         .wrap(
             Cors::new()
                 .allowed_methods(vec!["POST"])
@@ -80,13 +76,9 @@ pub fn send_app<
         .data(loader)
         .data(saver)
         .data(avatar_settings)
-        .data(cis_client)
+        .data(web::JsonConfig::default().limit(1_048_576))
+        .service(web::resource("/{uuid}").route(web::post().to_async(send_avatar::<S, L>)))
         .service(
-            web::resource("/{uuid]")
-                .data(web::JsonConfig::default().limit(1_048_576))
-                .route(web::post().to_async(send_avatar::<S, L>)),
-        )
-        .service(
-            web::resource("/display/{uuid}").route(web::post().to_async(update_display::<T, S, L>)),
+            web::resource("/display/{uuid}").route(web::post().to_async(update_display::<S, L>)),
         )
 }

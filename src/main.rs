@@ -64,7 +64,7 @@ fn main() -> Result<(), Error> {
         App::new()
             .wrap(Logger::default().exclude("/healthz"))
             .service(
-                web::scope("/avatar/")
+                web::scope("/avatar")
                     .service(scale_app())
                     .service(retrieve_app(
                         Arc::clone(&cis_client),
@@ -72,7 +72,6 @@ fn main() -> Result<(), Error> {
                         Arc::clone(&loader),
                     ))
                     .service(send_app(
-                        Arc::clone(&cis_client),
                         avatar_settings.clone(),
                         Arc::clone(&saver),
                         Arc::clone(&loader),
