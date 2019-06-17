@@ -2,9 +2,9 @@ use crate::scale::convert::handle_multipart_item;
 use actix_multipart::Multipart;
 use actix_web::dev::HttpServiceFactory;
 
+use actix_cors::Cors;
 use actix_web::http;
 use actix_web::http::ContentEncoding;
-use actix_web::middleware::cors::Cors;
 use actix_web::middleware::BodyEncoding;
 use actix_web::web;
 use actix_web::web::Path;

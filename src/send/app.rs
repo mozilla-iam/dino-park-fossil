@@ -4,16 +4,17 @@ use crate::send::sender::PictureUrl;
 use crate::settings::AvatarSettings;
 use crate::storage::loader::Loader;
 use crate::storage::saver::Saver;
+use actix_cors::Cors;
 use actix_web::dev::HttpServiceFactory;
 use actix_web::error;
 use actix_web::http;
-use actix_web::middleware::cors::Cors;
 use actix_web::web;
 use actix_web::web::Data;
 use actix_web::web::Json;
 use actix_web::web::Path;
-use actix_web::Result;
+use actix_web::Error;
 use cis_client::sync::client::CisClientTrait;
+use futures::Future;
 use std::sync::Arc;
 
 #[derive(Deserialize)]
@@ -39,11 +40,10 @@ fn send_avatar<S: Saver + Clone, L: Loader + Clone>(
     saver: Data<Arc<S>>,
     path: Path<Uuid>,
     body: Json<Avatar>,
-) -> Result<Json<PictureUrl>> {
-    match check_resize_store(&avatar_settings, &saver, &path.uuid, &body) {
-        Ok(v) => Ok(Json(v)),
-        Err(e) => Err(error::ErrorBadRequest(e)),
-    }
+) -> impl Future<Item = Json<PictureUrl>, Error = Error> {
+    check_resize_store(&avatar_settings, &saver, &path.uuid, &body)
+        .map(Json)
+        .map_err(error::ErrorBadRequest)
 }
 
 fn update_display<T: CisClientTrait + Clone, S: Saver + Clone, L: Loader + Clone>(
@@ -53,11 +53,10 @@ fn update_display<T: CisClientTrait + Clone, S: Saver + Clone, L: Loader + Clone
     saver: Data<Arc<S>>,
     path: Path<Uuid>,
     body: Json<ChangeDisplay>,
-) -> Result<Json<PictureUrl>> {
-    match change_display_level(&avatar_settings, &loader, &saver, &path.uuid, &body) {
-        Ok(v) => Ok(Json(v)),
-        Err(e) => Err(error::ErrorBadRequest(e)),
-    }
+) -> impl Future<Item = Json<PictureUrl>, Error = Error> {
+    change_display_level(&avatar_settings, &loader, &saver, &path.uuid, &body)
+        .map(Json)
+        .map_err(error::ErrorBadRequest)
 }
 
 pub fn send_app<
@@ -85,7 +84,9 @@ pub fn send_app<
         .service(
             web::resource("/{uuid]")
                 .data(web::JsonConfig::default().limit(1_048_576))
-                .route(web::post().to(send_avatar::<S, L>)),
+                .route(web::post().to_async(send_avatar::<S, L>)),
         )
-        .service(web::resource("/display/{uuid}").route(web::post().to(update_display::<T, S, L>)))
+        .service(
+            web::resource("/display/{uuid}").route(web::post().to_async(update_display::<T, S, L>)),
+        )
 }

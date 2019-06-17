@@ -11,7 +11,12 @@ pub enum S3Error {
 }
 
 pub trait Loader {
-    fn load(&self, name: &str, prefix: &str, bucket: &str) -> Result<Vec<u8>, Error>;
+    fn load(
+        &self,
+        name: &str,
+        prefix: &str,
+        bucket: &str,
+    ) -> Box<Future<Item = Vec<u8>, Error = Error>>;
 }
 
 #[derive(Clone)]
@@ -20,24 +25,40 @@ pub struct S3Loader<S: S3> {
 }
 
 impl<S: S3> Loader for S3Loader<S> {
-    fn load(&self, name: &str, prefix: &str, bucket: &str) -> Result<Vec<u8>, Error> {
+    fn load(
+        &self,
+        name: &str,
+        prefix: &str,
+        bucket: &str,
+    ) -> Box<Future<Item = Vec<u8>, Error = Error>> {
         let download = GetObjectRequest {
             bucket: bucket.to_owned(),
             key: format!("{}/{}", prefix, name),
             ..Default::default()
         };
-        let res = self.s3_client.get_object(download).sync()?;
-        info!(
-            "downloaded {} from {} with version_id: {}",
-            name,
-            bucket,
-            res.version_id.unwrap_or_else(|| String::from("-")),
-        );
-        if let Some(body) = res.body {
-            let buf: Vec<u8> = body.concat2().wait()?.to_vec();
-            Ok(buf)
-        } else {
-            Err(S3Error::NoBody.into())
-        }
+        let name = name.to_owned();
+        let bucket = bucket.to_owned();
+        Box::new(
+            self.s3_client
+                .get_object(download)
+                .map(move |res| {
+                    info!(
+                        "downloaded {} from {} with version_id: {}",
+                        name,
+                        bucket,
+                        res.version_id
+                            .as_ref()
+                            .map(|x| x.as_str())
+                            .unwrap_or_else(|| "-"),
+                    );
+                    res
+                })
+                .map_err(Error::from)
+                .and_then(|res| res.body.ok_or_else(|| S3Error::NoBody.into()))
+                .map_err(Error::from)
+                .and_then(|body| body.concat2().map_err(Error::from))
+                .map(|body| body.to_vec())
+                .map_err(Into::into),
+        )
     }
 }

@@ -10,6 +10,9 @@ use crate::storage::loader::Loader;
 use crate::storage::name::ExternalFileName;
 use crate::storage::saver::Saver;
 use failure::Error;
+use futures::future::Either;
+use futures::Future;
+use futures::IntoFuture;
 use std::sync::Arc;
 
 #[derive(Debug, Fail)]
@@ -29,23 +32,29 @@ pub fn change_display_level(
     saver: &Arc<impl Saver>,
     uuid: &str,
     change_display: &ChangeDisplay,
-) -> Result<PictureUrl, Error> {
+) -> impl Future<Item = PictureUrl, Error = Error> {
     info!("changing display level for {}", uuid);
-    let old_file_name = ExternalFileName::from_uri(&change_display.old_url)?;
+    let old_file_name = match ExternalFileName::from_uri(&change_display.old_url) {
+        Ok(old_file_name) => old_file_name,
+        Err(e) => return Either::B(Err(e).into_future()),
+    };
     let file_name = ExternalFileName::from_uuid_and_display(uuid, &change_display.display);
-    if old_file_name.internal.uuid_hash != file_name.internal.uuid_hash {
-        return Err(SaveError::UuidMismatch.into());
-    }
-    rename(
-        &old_file_name.internal.to_string(),
-        &file_name.internal.to_string(),
-        &settings.s3_bucket,
-        saver,
-        loader,
-    )?;
-    Ok(PictureUrl {
+    let result = PictureUrl {
         url: format!("{}{}", settings.retrieve_by_id_path, &file_name.filename()),
-    })
+    };
+    if old_file_name.internal.uuid_hash != file_name.internal.uuid_hash {
+        return Either::B(Err(SaveError::UuidMismatch.into()).into_future());
+    }
+    Either::A(
+        rename(
+            &old_file_name.internal.to_string(),
+            &file_name.internal.to_string(),
+            &settings.s3_bucket,
+            saver,
+            loader,
+        )
+        .map(move |_| result),
+    )
 }
 
 pub fn check_resize_store(
@@ -53,26 +62,40 @@ pub fn check_resize_store(
     saver: &Arc<impl Saver>,
     uuid: &str,
     avatar: &Avatar,
-) -> Result<PictureUrl, Error> {
+) -> impl Future<Item = PictureUrl, Error = Error> {
     info!("uploading image for {}", uuid);
-    let avatars = Avatars::new(&png_from_data_uri(&avatar.data_uri)?)?;
     let file_name = ExternalFileName::from_uuid_and_display(uuid, &avatar.display);
-    if let Some(old_url) = &avatar.old_url {
-        let old_file_name = ExternalFileName::from_uri(&old_url);
-        match old_file_name {
-            Ok(name) => delete(&name.internal.to_string(), &settings.s3_bucket, saver)?,
-            Err(e) => warn!("{} for {}: {}", e, uuid, old_url),
-        }
-    }
-    save(
-        avatars,
-        &file_name.internal.to_string(),
-        &settings.s3_bucket,
-        saver,
-    )?;
-    Ok(PictureUrl {
+    let avatars = match png_from_data_uri(&avatar.data_uri).and_then(|buf| Avatars::new(&buf)) {
+        Ok(avatars) => avatars,
+        Err(e) => return Either::B(Err(e).into_future()),
+    };
+    let saver = Arc::clone(saver);
+    let bucket = settings.s3_bucket.clone();
+    let result = PictureUrl {
         url: format!("{}{}", settings.retrieve_by_id_path, &file_name.filename()),
-    })
+    };
+    Either::A(
+        {
+            if let Some(old_url) = &avatar.old_url {
+                let old_file_name = ExternalFileName::from_uri(&old_url);
+                match old_file_name {
+                    Ok(name) => Either::A(delete(
+                        &name.internal.to_string(),
+                        &settings.s3_bucket,
+                        &saver,
+                    )),
+                    Err(e) => {
+                        warn!("{} for {}: {}", e, uuid, old_url);
+                        Either::B(Ok(()).into_future())
+                    }
+                }
+            } else {
+                Either::B(Ok(()).into_future())
+            }
+        }
+        .and_then(move |_| save(avatars, &file_name.internal.to_string(), &bucket, &saver))
+        .map(|_| result),
+    )
 }
 
 #[cfg(test)]
@@ -84,17 +107,25 @@ mod test {
         save: bool,
     }
     impl Saver for DummySaver {
-        fn save(&self, _: &str, _: &str, _: &str, _: Vec<u8>) -> Result<(), Error> {
-            match self.save {
+        fn save(
+            &self,
+            _: &str,
+            _: &str,
+            _: &str,
+            _: Vec<u8>,
+        ) -> Box<Future<Item = (), Error = Error>> {
+            let ret = match self.save {
                 true => Ok(()),
                 false => Err(format_err!("doom")),
-            }
+            };
+            Box::new(ret.into_future())
         }
-        fn delete(&self, _: &str, _: &str, _: &str) -> Result<(), Error> {
-            match self.delete {
+        fn delete(&self, _: &str, _: &str, _: &str) -> Box<Future<Item = (), Error = Error>> {
+            let ret = match self.delete {
                 true => Ok(()),
                 false => Err(format_err!("doom")),
-            }
+            };
+            Box::new(ret.into_future())
         }
     }
 
@@ -115,7 +146,7 @@ mod test {
             display: String::from("private"),
             old_url: None,
         };
-        check_resize_store(&settings, &saver, uuid, &avatar)?;
+        check_resize_store(&settings, &saver, uuid, &avatar).wait()?;
         Ok(())
     }
 
@@ -138,7 +169,7 @@ mod test {
                 "MmU5ODFiODZkNWY3N2Y1NDY2ZWM1NmUyYjQwM2RlYWUyOTI3MGYwMDllOGFmZGE1ODNjZjEyNzQ3YjQ0NzQyNiNzdGFmZiMxNTU0MDQ1OTgz.png",
             )),
         };
-        check_resize_store(&settings, &saver, uuid, &avatar)?;
+        check_resize_store(&settings, &saver, uuid, &avatar).wait()?;
         Ok(())
     }
 }

@@ -1,3 +1,4 @@
+extern crate actix_cors;
 extern crate actix_multipart;
 extern crate actix_web;
 extern crate base64;

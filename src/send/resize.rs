@@ -48,7 +48,7 @@ pub fn png_from_data_uri(data_uri: &str) -> Result<Vec<u8>, Error> {
 }
 
 fn downsize(size: u32, img: &DynamicImage) -> Result<Vec<u8>, Error> {
-    let down_sized = img.resize_to_fill(size, size, FilterType::CatmullRom);
+    let down_sized = img.resize_to_fill(size, size, FilterType::Lanczos3);
     let mut buf: Vec<u8> = Vec::new();
     down_sized.write_to(&mut buf, image::ImageOutputFormat::PNG)?;
     Ok(buf)
