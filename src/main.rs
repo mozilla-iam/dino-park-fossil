@@ -15,6 +15,7 @@ extern crate rusoto_core;
 extern crate rusoto_s3;
 extern crate serde;
 extern crate sha2;
+extern crate uuid;
 
 #[macro_use]
 extern crate failure;

@@ -1,5 +1,6 @@
 use crate::send::app::Avatar;
 use crate::send::app::ChangeDisplay;
+use crate::send::app::Save;
 use crate::send::operations::delete;
 use crate::send::operations::rename;
 use crate::send::operations::save;
@@ -57,15 +58,56 @@ pub fn change_display_level(
     )
 }
 
-pub fn check_resize_store(
+pub fn check_resize_store_data_uri(
     settings: &AvatarSettings,
     saver: &Arc<impl Saver>,
     uuid: &str,
     avatar: &Avatar,
 ) -> impl Future<Item = PictureUrl, Error = Error> {
+    let buf = match png_from_data_uri(&avatar.data_uri) {
+        Ok(buf) => buf,
+        Err(e) => return Either::B(Err(e).into_future()),
+    };
+    Either::A(check_resize_store(
+        settings,
+        saver,
+        uuid,
+        buf,
+        &avatar.display,
+        &avatar.old_url,
+    ))
+}
+
+pub fn check_resize_store_intermediate(
+    settings: &AvatarSettings,
+    saver: &Arc<impl Saver>,
+    loader: &Arc<impl Loader>,
+    uuid: &str,
+    save: &Save,
+) -> impl Future<Item = PictureUrl, Error = Error> {
+    // TODO: cleanup clones
+    let settings = settings.clone();
+    let saver = Arc::clone(saver);
+    let loader = Arc::clone(loader);
+    let uuid = uuid.to_owned();
+    let old_url = save.old_url.clone();
+    let display = save.display.clone();
+    loader
+        .load(&save.intermediate, "tmp", &settings.s3_bucket)
+        .and_then(move |buf| check_resize_store(&settings, &saver, &uuid, buf, &display, &old_url))
+}
+
+fn check_resize_store(
+    settings: &AvatarSettings,
+    saver: &Arc<impl Saver>,
+    uuid: &str,
+    buf: Vec<u8>,
+    display: &str,
+    old_url: &Option<String>,
+) -> impl Future<Item = PictureUrl, Error = Error> {
     info!("uploading image for {}", uuid);
-    let file_name = ExternalFileName::from_uuid_and_display(uuid, &avatar.display);
-    let avatars = match png_from_data_uri(&avatar.data_uri).and_then(|buf| Avatars::new(&buf)) {
+    let file_name = ExternalFileName::from_uuid_and_display(uuid, display);
+    let avatars = match Avatars::new(&buf) {
         Ok(avatars) => avatars,
         Err(e) => return Either::B(Err(e).into_future()),
     };
@@ -76,7 +118,7 @@ pub fn check_resize_store(
     };
     Either::A(
         {
-            if let Some(old_url) = &avatar.old_url {
+            if let Some(old_url) = old_url {
                 let old_file_name = ExternalFileName::from_uri(&old_url);
                 match old_file_name {
                     Ok(name) => Either::A(delete(
@@ -96,6 +138,14 @@ pub fn check_resize_store(
         .and_then(move |_| save(avatars, &file_name.internal.to_string(), &bucket, &saver))
         .map(|_| result),
     )
+}
+
+pub fn store_intermediate(
+    bucket: String,
+    saver: Arc<impl Saver>,
+    buf: Vec<u8>,
+) -> impl Future<Item = String, Error = Error> {
+    saver.save_tmp(&bucket, buf)
 }
 
 #[cfg(test)]
@@ -127,6 +177,9 @@ mod test {
             };
             Box::new(ret.into_future())
         }
+        fn save_tmp(&self, _: &str, _: Vec<u8>) -> Box<Future<Item = String, Error = Error>> {
+            Box::new(Ok(String::from("936DA01F9ABD4d9d80C702AF85C822A8")).into_future())
+        }
     }
 
     #[test]
@@ -146,7 +199,7 @@ mod test {
             display: String::from("private"),
             old_url: None,
         };
-        check_resize_store(&settings, &saver, uuid, &avatar).wait()?;
+        check_resize_store_data_uri(&settings, &saver, uuid, &avatar).wait()?;
         Ok(())
     }
 
@@ -169,7 +222,7 @@ mod test {
                 "MmU5ODFiODZkNWY3N2Y1NDY2ZWM1NmUyYjQwM2RlYWUyOTI3MGYwMDllOGFmZGE1ODNjZjEyNzQ3YjQ0NzQyNiNzdGFmZiMxNTU0MDQ1OTgz.png",
             )),
         };
-        check_resize_store(&settings, &saver, uuid, &avatar).wait()?;
+        check_resize_store_data_uri(&settings, &saver, uuid, &avatar).wait()?;
         Ok(())
     }
 }

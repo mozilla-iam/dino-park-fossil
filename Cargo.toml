@@ -27,3 +27,4 @@ failure_derive = "0.1.5"
 data-url = "0.1.0"
 base64 = "0.10"
 sha2 = "0.8"
+uuid = { version = "0.7", features = ["v4"] }
