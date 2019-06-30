@@ -1,4 +1,6 @@
+use actix_web::dev::Payload;
 use actix_web::error;
+use actix_web::Error;
 use actix_web::FromRequest;
 use actix_web::HttpRequest;
 use actix_web::Result;
@@ -8,12 +10,13 @@ pub struct Scope {
     pub scope: String,
 }
 
-impl<S> FromRequest<S> for Scope {
+impl FromRequest for Scope {
     type Config = ();
-    type Result = Result<Scope, error::Error>;
+    type Future = Result<Self, Error>;
+    type Error = Error;
 
     #[inline]
-    fn from_request(req: &HttpRequest<S>, _cfg: &Self::Config) -> Self::Result {
+    fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
         req.headers()
             .get("scope")
             .and_then(|h| h.to_str().ok())

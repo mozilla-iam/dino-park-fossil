@@ -15,20 +15,22 @@ pub enum ImageProcessingError {
 }
 
 pub struct Avatars {
+    pub raw: Vec<u8>,
     pub x264: Vec<u8>,
     pub x100: Vec<u8>,
     pub x40: Vec<u8>,
 }
 
 impl Avatars {
-    pub fn new(buf: &[u8]) -> Result<Self, Error> {
-        let img = image::load_from_memory(buf)?;
+    pub fn new(buf: Vec<u8>) -> Result<Self, Error> {
+        let img = image::load_from_memory(&buf)?;
         let (w, h) = img.dimensions();
         let ratio = f64::from(w) / f64::from(h);
         if ratio < 0.95 || ratio > 1.05 {
             return Err(format_err!("wrong ascpect ratio: {}", ratio));
         }
         Ok(Avatars {
+            raw: buf,
             x264: downsize(264, &img)?,
             x100: downsize(100, &img)?,
             x40: downsize(40, &img)?,
@@ -48,7 +50,7 @@ pub fn png_from_data_uri(data_uri: &str) -> Result<Vec<u8>, Error> {
 }
 
 fn downsize(size: u32, img: &DynamicImage) -> Result<Vec<u8>, Error> {
-    let down_sized = img.resize_to_fill(size, size, FilterType::CatmullRom);
+    let down_sized = img.resize_to_fill(size, size, FilterType::Lanczos3);
     let mut buf: Vec<u8> = Vec::new();
     down_sized.write_to(&mut buf, image::ImageOutputFormat::PNG)?;
     Ok(buf)

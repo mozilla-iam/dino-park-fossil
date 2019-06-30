@@ -16,7 +16,7 @@ pub struct Settings {
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
-        let file = env::var("DPF_SETTINGS").unwrap_or_else(|_| String::from(".settings"));
+        let file = env::var("DPF_SETTINGS").unwrap_or_else(|_| String::from(".settings.json"));
         let mut s = Config::new();
         s.merge(File::with_name(&file))?;
         s.merge(Environment::new().separator("__"))?;
