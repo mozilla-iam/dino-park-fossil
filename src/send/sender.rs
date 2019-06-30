@@ -107,7 +107,7 @@ fn check_resize_store(
 ) -> impl Future<Item = PictureUrl, Error = Error> {
     info!("uploading image for {}", uuid);
     let file_name = ExternalFileName::from_uuid_and_display(uuid, display);
-    let avatars = match Avatars::new(&buf) {
+    let avatars = match Avatars::new(buf) {
         Ok(avatars) => avatars,
         Err(e) => return Either::B(Err(e).into_future()),
     };

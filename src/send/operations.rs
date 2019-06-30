@@ -7,6 +7,7 @@ use futures::future::Either;
 use futures::Future;
 use std::sync::Arc;
 
+const RAW: &str = "raw";
 const LARGE: &str = "264";
 const MEDIUM: &str = "100";
 const SMALL: &str = "40";
@@ -30,8 +31,14 @@ pub fn save(
     bucket: &str,
     saver: &Arc<impl Saver>,
 ) -> impl Future<Item = (), Error = Error> {
-    let Avatars { x264, x100, x40 } = avatars;
-    Future::join3(
+    let Avatars {
+        raw,
+        x264,
+        x100,
+        x40,
+    } = avatars;
+    Future::join4(
+        saver.save(name, RAW, bucket, raw),
         saver.save(name, LARGE, bucket, x264),
         saver.save(name, MEDIUM, bucket, x100),
         saver.save(name, SMALL, bucket, x40),
