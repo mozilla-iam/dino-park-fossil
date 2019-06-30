@@ -62,7 +62,7 @@ pub fn check_resize_store_data_uri(
     settings: &AvatarSettings,
     saver: &Arc<impl Saver>,
     uuid: &str,
-    avatar: &Avatar,
+    avatar: Avatar,
 ) -> impl Future<Item = PictureUrl, Error = Error> {
     let buf = match png_from_data_uri(&avatar.data_uri) {
         Ok(buf) => buf,
@@ -83,18 +83,17 @@ pub fn check_resize_store_intermediate(
     saver: &Arc<impl Saver>,
     loader: &Arc<impl Loader>,
     uuid: &str,
-    save: &Save,
+    save: Save,
 ) -> impl Future<Item = PictureUrl, Error = Error> {
-    // TODO: cleanup clones
     let settings = settings.clone();
     let saver = Arc::clone(saver);
     let loader = Arc::clone(loader);
     let uuid = uuid.to_owned();
-    let old_url = save.old_url.clone();
-    let display = save.display.clone();
     loader
         .load(&save.intermediate, "tmp", &settings.s3_bucket)
-        .and_then(move |buf| check_resize_store(&settings, &saver, &uuid, buf, &display, &old_url))
+        .and_then(move |buf| {
+            check_resize_store(&settings, &saver, &uuid, buf, &save.display, &save.old_url)
+        })
 }
 
 fn check_resize_store(
@@ -199,7 +198,7 @@ mod test {
             display: String::from("private"),
             old_url: None,
         };
-        check_resize_store_data_uri(&settings, &saver, uuid, &avatar).wait()?;
+        check_resize_store_data_uri(&settings, &saver, uuid, avatar).wait()?;
         Ok(())
     }
 
@@ -222,7 +221,7 @@ mod test {
                 "MmU5ODFiODZkNWY3N2Y1NDY2ZWM1NmUyYjQwM2RlYWUyOTI3MGYwMDllOGFmZGE1ODNjZjEyNzQ3YjQ0NzQyNiNzdGFmZiMxNTU0MDQ1OTgz.png",
             )),
         };
-        check_resize_store_data_uri(&settings, &saver, uuid, &avatar).wait()?;
+        check_resize_store_data_uri(&settings, &saver, uuid, avatar).wait()?;
         Ok(())
     }
 }

@@ -54,7 +54,7 @@ fn send_avatar<S: Saver + Clone>(
     path: Path<Uuid>,
     body: Json<Avatar>,
 ) -> impl Future<Item = Json<PictureUrl>, Error = Error> {
-    check_resize_store_data_uri(&avatar_settings, &saver, &path.uuid, &body)
+    check_resize_store_data_uri(&avatar_settings, &saver, &path.uuid, body.0)
         .map(Json)
         .map_err(error::ErrorBadRequest)
 }
@@ -66,7 +66,7 @@ fn send_save<S: Saver + Clone, L: Loader + Clone>(
     path: Path<Uuid>,
     body: Json<Save>,
 ) -> impl Future<Item = Json<PictureUrl>, Error = Error> {
-    check_resize_store_intermediate(&avatar_settings, &saver, &loader, &path.uuid, &body)
+    check_resize_store_intermediate(&avatar_settings, &saver, &loader, &path.uuid, body.0)
         .map(Json)
         .map_err(error::ErrorBadRequest)
 }
