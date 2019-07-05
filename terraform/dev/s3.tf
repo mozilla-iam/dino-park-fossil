@@ -6,6 +6,16 @@ resource "aws_s3_bucket" "cis_avatars_bucket" {
     Name        = "cis-avatars"
     Environment = "${var.environment}"
   }
+
+  lifecycle_rule {
+    id      = "tmp"
+    prefix  = "tmp/"
+    enabled = true
+
+    expiration {
+      days = "1"
+    }
+  }
 }
 
 resource "aws_iam_role" "dino_park_fossil_role" {
