@@ -11,5 +11,7 @@ It provides the following APIs:
 - `POST /avatar/send/display/{uuid}` to change a display level of a profile picture
 - `POST /avatar/get/id/{filename}` to retrieve the picture via the _filename_ (preferred)
 - `POST /avatar/get/{primaryUsername}` to retrieve the picture via the primaryUsername
+-
 
 For now all of these APIs are internal. We will open up the retrieving endpoints soon.
+
