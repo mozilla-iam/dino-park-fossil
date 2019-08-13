@@ -3,6 +3,7 @@ version: 0.2
 phases:
   install:
     commands:
+      - echo "This is my fancy test"
       - ". ci/install_deps.sh"
   pre_build:
     commands:
@@ -17,6 +18,7 @@ phases:
       - aws ecr get-login --region us-west-2 --no-include-email | bash
   build:
     commands:
+      - echo "This is my fancy test"
       - if [ "$PR" = 1 ]; then myke package-local; fi
       - if [ "$MASTER" = 1 ]; then myke package-local --rev=$COMMIT_SHA push-image --rev=$COMMIT_SHA; fi
   post_build:
