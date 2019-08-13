@@ -17,4 +17,3 @@ variable "buildspec_file" {
 variable "build_image" {
   default = "aws/codebuild/standard:1.0"
 }
-

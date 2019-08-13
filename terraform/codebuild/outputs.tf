@@ -7,4 +7,3 @@ output "ecr_url" {
   value       = "${aws_ecr_repository.registry.repository_url}"
   description = "URL of the new container registry which will host your builds"
 }
-

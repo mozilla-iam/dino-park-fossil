@@ -7,7 +7,7 @@
 resource "aws_codebuild_project" "build" {
   name          = "${var.project_name}"
   description   = "CI pipeline for ${var.project_name}"
-  build_timeout = "60" #In minutes
+  build_timeout = "60"                                  #In minutes
   service_role  = "${aws_iam_role.codebuild.arn}"
 
   # Valid values for this parameter are: CODEPIPELINE, NO_ARTIFACTS or S3.
@@ -18,9 +18,10 @@ resource "aws_codebuild_project" "build" {
   }
 
   environment {
-    compute_type    = "BUILD_GENERAL1_LARGE"
-    image           = "${var.build_image}"
-    type            = "LINUX_CONTAINER"
+    compute_type = "BUILD_GENERAL1_LARGE"
+    image        = "${var.build_image}"
+    type         = "LINUX_CONTAINER"
+
     # You need "true" here to be able to run Docker daemon inside the building container
     privileged_mode = "true"
 
@@ -35,6 +36,11 @@ resource "aws_codebuild_project" "build" {
     type      = "GITHUB"
     location  = "${var.github_repo}"
     buildspec = "${var.buildspec_file}"
+  }
+
+  cache {
+    type  = "LOCAL"
+    modes = ["LOCAL_DOCKER_LAYER_CACHE", "LOCAL_CUSTOM_CACHE", "LOCAL_SOURCE_CACHE"]
   }
 
   tags {
@@ -114,7 +120,7 @@ POLICY
 #---
 
 resource "aws_ecr_repository" "registry" {
-  name  = "${var.project_name}"
+  name = "${var.project_name}"
 }
 
 resource "aws_ecr_repository_policy" "registrypolicy" {
@@ -150,4 +156,3 @@ resource "aws_ecr_repository_policy" "registrypolicy" {
 }
 EOF
 }
-
