@@ -7,6 +7,7 @@ extern crate cis_client;
 extern crate cis_profile;
 extern crate config;
 extern crate data_url;
+extern crate dino_park_gate;
 extern crate env_logger;
 extern crate futures;
 extern crate image;
@@ -40,6 +41,7 @@ use actix_web::web;
 use actix_web::App;
 use actix_web::HttpServer;
 use cis_client::CisClient;
+use dino_park_gate::provider::Provider;
 use failure::Error;
 use retrieve::app::retrieve_app;
 use scale::app::scale_app;
@@ -60,6 +62,7 @@ fn main() -> Result<(), Error> {
     let loader = Arc::new(S3Loader {
         s3_client: s3_client.clone(),
     });
+    let provider = Provider::from_issuer("https://auth.mozilla.auth0.com/")?;
     // Start http server
     HttpServer::new(move || {
         App::new()
@@ -71,6 +74,7 @@ fn main() -> Result<(), Error> {
                         Arc::clone(&cis_client),
                         avatar_settings.clone(),
                         Arc::clone(&loader),
+                        provider.clone(),
                     ))
                     .service(send_app(
                         avatar_settings.clone(),
