@@ -28,7 +28,6 @@ extern crate serde_derive;
 mod healthz;
 mod retrieve;
 mod scale;
-mod scope;
 mod send;
 mod settings;
 mod storage;

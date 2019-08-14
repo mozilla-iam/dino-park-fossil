@@ -1,6 +1,4 @@
-use crate::retrieve::retriever::check_and_retrieve_avatar_by_username_from_store;
 use crate::retrieve::retriever::retrieve_avatar_from_store;
-use crate::scope::Scope;
 use crate::settings::AvatarSettings;
 use crate::storage::loader::Loader;
 use actix_cors::Cors;
@@ -38,29 +36,6 @@ struct Picture {
 #[derive(Deserialize)]
 struct PictureQuery {
     size: String,
-}
-
-fn retrieve_avatar_by_username<T: AsyncCisClientTrait + Clone, L: Loader + Clone>(
-    cis_client: Data<Arc<T>>,
-    avatar_settings: Data<AvatarSettings>,
-    loader: Data<Arc<L>>,
-    path: Path<Username>,
-    scope: Option<Scope>,
-) -> impl Future<Item = HttpResponse, Error = Error> {
-    check_and_retrieve_avatar_by_username_from_store(
-        &cis_client,
-        &avatar_settings,
-        &loader,
-        &path.username,
-        &scope,
-    )
-    .map(|b| {
-        HttpResponse::Ok()
-            .encoding(ContentEncoding::Identity)
-            .header("content-type", "image/png")
-            .body(b)
-    })
-    .map_err(error::ErrorBadRequest)
 }
 
 fn retrieve_public_avatar<L: Loader + Clone>(
@@ -145,9 +120,5 @@ pub fn retrieve_app<
         )
         .service(
             web::resource("/id/{picture}").route(web::get().to_async(retrieve_public_avatar::<L>)),
-        )
-        .service(
-            web::resource("/{username}")
-                .route(web::get().to_async(retrieve_avatar_by_username::<T, L>)),
         )
 }
