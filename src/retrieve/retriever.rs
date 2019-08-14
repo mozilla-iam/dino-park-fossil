@@ -6,8 +6,8 @@ use failure::Error;
 use futures::future::Either;
 use futures::future::IntoFuture;
 use futures::Future;
-use std::sync::Arc;
 use std::convert::TryFrom;
+use std::sync::Arc;
 
 const DINO_1024: &[u8] = include_bytes!("../data/dino_1024.png");
 const DINO_528: &[u8] = include_bytes!("../data/dino_528.png");
@@ -29,7 +29,8 @@ fn get_dino(size: &str) -> Vec<u8> {
         "528" => DINO_528,
         "1024" => DINO_1024,
         _ => DINO_512,
-    }.into()
+    }
+    .into()
 }
 
 pub fn retrieve_avatar_from_store(
@@ -45,7 +46,8 @@ pub fn retrieve_avatar_from_store(
         Err(e) => return Either::B(Err(e).into_future()),
     };
     if let Some(scope) = scope {
-        if scope < Display::try_from(internal.display.as_str()).unwrap_or_else(|_| Display::Public) {
+        if scope < Display::try_from(internal.display.as_str()).unwrap_or_else(|_| Display::Public)
+        {
             return Either::B(Ok(get_dino(size)).into_future());
         }
     }

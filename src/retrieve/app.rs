@@ -24,11 +24,6 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 
 #[derive(Deserialize)]
-struct Username {
-    username: String,
-}
-
-#[derive(Deserialize)]
 struct Picture {
     picture: String,
 }
