@@ -15,17 +15,15 @@ use futures::Future;
 pub fn echo(
     size: Path<u32>,
     multipart: Multipart,
-) -> Box<dyn Future<Item = HttpResponse, Error = Error>> {
-    Box::new(
-        handle_multipart_item(*size, multipart)
-            .map(|b| {
-                HttpResponse::Ok()
-                    .encoding(ContentEncoding::Identity)
-                    .header("content-type", "image/png")
-                    .body(b)
-            })
-            .map_err(Into::into),
-    )
+) -> impl Future<Item = HttpResponse, Error = Error> {
+    handle_multipart_item(*size, multipart)
+        .map(|b| {
+            HttpResponse::Ok()
+                .encoding(ContentEncoding::Identity)
+                .header("content-type", "image/png")
+                .body(b)
+        })
+        .map_err(Into::into)
 }
 pub fn scale_app() -> impl HttpServiceFactory {
     web::scope("/scale")
@@ -36,5 +34,5 @@ pub fn scale_app() -> impl HttpServiceFactory {
                 .allowed_header(http::header::CONTENT_TYPE)
                 .max_age(3600),
         )
-        .service(web::resource("/{size}").route(web::post().to(echo)))
+        .service(web::resource("/{size}").route(web::post().to_async(echo)))
 }
