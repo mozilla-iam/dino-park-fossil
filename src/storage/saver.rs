@@ -15,14 +15,14 @@ pub trait Saver {
         prefix: &str,
         bucket: &str,
         buf: Vec<u8>,
-    ) -> Box<Future<Item = (), Error = Error>>;
+    ) -> Box<dyn Future<Item = (), Error = Error>>;
     fn delete(
         &self,
         name: &str,
         prefix: &str,
         bucket: &str,
-    ) -> Box<Future<Item = (), Error = Error>>;
-    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> Box<Future<Item = String, Error = Error>>;
+    ) -> Box<dyn Future<Item = (), Error = Error>>;
+    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> Box<dyn Future<Item = String, Error = Error>>;
 }
 
 #[derive(Clone)]
@@ -37,7 +37,7 @@ impl<S: S3> Saver for S3Saver<S> {
         prefix: &str,
         bucket: &str,
         buf: Vec<u8>,
-    ) -> Box<Future<Item = (), Error = Error>> {
+    ) -> Box<dyn Future<Item = (), Error = Error>> {
         let put = PutObjectRequest {
             bucket: bucket.to_owned(),
             key: format!("{}/{}", prefix, name),
@@ -68,7 +68,7 @@ impl<S: S3> Saver for S3Saver<S> {
         name: &str,
         prefix: &str,
         bucket: &str,
-    ) -> Box<Future<Item = (), Error = Error>> {
+    ) -> Box<dyn Future<Item = (), Error = Error>> {
         let delete = DeleteObjectRequest {
             bucket: bucket.to_owned(),
             key: format!("{}/{}", prefix, name),
@@ -93,7 +93,7 @@ impl<S: S3> Saver for S3Saver<S> {
                 }),
         )
     }
-    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> Box<Future<Item = String, Error = Error>> {
+    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> Box<dyn Future<Item = String, Error = Error>> {
         let name = Uuid::new_v4().to_simple().to_string();
         let put = PutObjectRequest {
             bucket: bucket.to_owned(),

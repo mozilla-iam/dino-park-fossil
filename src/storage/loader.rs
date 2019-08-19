@@ -16,7 +16,7 @@ pub trait Loader {
         name: &str,
         prefix: &str,
         bucket: &str,
-    ) -> Box<Future<Item = Vec<u8>, Error = Error>>;
+    ) -> Box<dyn Future<Item = Vec<u8>, Error = Error>>;
 }
 
 #[derive(Clone)]
@@ -30,7 +30,7 @@ impl<S: S3> Loader for S3Loader<S> {
         name: &str,
         prefix: &str,
         bucket: &str,
-    ) -> Box<Future<Item = Vec<u8>, Error = Error>> {
+    ) -> Box<dyn Future<Item = Vec<u8>, Error = Error>> {
         let download = GetObjectRequest {
             bucket: bucket.to_owned(),
             key: format!("{}/{}", prefix, name),
