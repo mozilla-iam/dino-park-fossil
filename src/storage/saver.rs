@@ -22,7 +22,8 @@ pub trait Saver {
         prefix: &str,
         bucket: &str,
     ) -> Box<dyn Future<Item = (), Error = Error>>;
-    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> Box<dyn Future<Item = String, Error = Error>>;
+    fn save_tmp(&self, bucket: &str, buf: Vec<u8>)
+        -> Box<dyn Future<Item = String, Error = Error>>;
 }
 
 #[derive(Clone)]
@@ -93,7 +94,11 @@ impl<S: S3> Saver for S3Saver<S> {
                 }),
         )
     }
-    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> Box<dyn Future<Item = String, Error = Error>> {
+    fn save_tmp(
+        &self,
+        bucket: &str,
+        buf: Vec<u8>,
+    ) -> Box<dyn Future<Item = String, Error = Error>> {
         let name = Uuid::new_v4().to_simple().to_string();
         let put = PutObjectRequest {
             bucket: bucket.to_owned(),
