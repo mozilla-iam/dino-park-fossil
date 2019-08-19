@@ -162,21 +162,21 @@ mod test {
             _: &str,
             _: &str,
             _: Vec<u8>,
-        ) -> Box<Future<Item = (), Error = Error>> {
+        ) -> Box<dyn Future<Item = (), Error = Error>> {
             let ret = match self.save {
                 true => Ok(()),
                 false => Err(format_err!("doom")),
             };
             Box::new(ret.into_future())
         }
-        fn delete(&self, _: &str, _: &str, _: &str) -> Box<Future<Item = (), Error = Error>> {
+        fn delete(&self, _: &str, _: &str, _: &str) -> Box<dyn Future<Item = (), Error = Error>> {
             let ret = match self.delete {
                 true => Ok(()),
                 false => Err(format_err!("doom")),
             };
             Box::new(ret.into_future())
         }
-        fn save_tmp(&self, _: &str, _: Vec<u8>) -> Box<Future<Item = String, Error = Error>> {
+        fn save_tmp(&self, _: &str, _: Vec<u8>) -> Box<dyn Future<Item = String, Error = Error>> {
             Box::new(Ok(String::from("936DA01F9ABD4d9d80C702AF85C822A8")).into_future())
         }
     }

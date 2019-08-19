@@ -4,7 +4,7 @@ use failure::Error;
 use sha2;
 use sha2::Digest;
 
-static FILE_ENDING: &'static str = "png";
+static FILE_ENDING: &str = "png";
 
 #[derive(Debug, Fail)]
 pub enum NameError {
