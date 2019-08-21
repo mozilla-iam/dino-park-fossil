@@ -16,6 +16,7 @@ pub enum ImageProcessingError {
 
 pub struct Avatars {
     pub raw: Vec<u8>,
+    pub x528: Vec<u8>,
     pub x264: Vec<u8>,
     pub x100: Vec<u8>,
     pub x40: Vec<u8>,
@@ -31,6 +32,7 @@ impl Avatars {
         }
         Ok(Avatars {
             raw: buf,
+            x528: downsize(528, &img)?,
             x264: downsize(264, &img)?,
             x100: downsize(100, &img)?,
             x40: downsize(40, &img)?,

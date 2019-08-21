@@ -8,6 +8,7 @@ use futures::Future;
 use std::sync::Arc;
 
 const RAW: &str = "raw";
+const XLARGE: &str = "528";
 const LARGE: &str = "264";
 const MEDIUM: &str = "100";
 const SMALL: &str = "40";
@@ -17,7 +18,8 @@ pub fn delete(
     bucket: &str,
     saver: &Arc<impl Saver>,
 ) -> impl Future<Item = (), Error = Error> {
-    Future::join3(
+    Future::join4(
+        saver.delete(name, XLARGE, bucket),
         saver.delete(name, LARGE, bucket),
         saver.delete(name, MEDIUM, bucket),
         saver.delete(name, SMALL, bucket),
@@ -33,12 +35,14 @@ pub fn save(
 ) -> impl Future<Item = (), Error = Error> {
     let Avatars {
         raw,
+        x528,
         x264,
         x100,
         x40,
     } = avatars;
-    Future::join4(
+    Future::join5(
         saver.save(name, RAW, bucket, raw),
+        saver.save(name, XLARGE, bucket, x528),
         saver.save(name, LARGE, bucket, x264),
         saver.save(name, MEDIUM, bucket, x100),
         saver.save(name, SMALL, bucket, x40),
@@ -57,7 +61,8 @@ pub fn rename(
         return Either::A(future::ok(()));
     }
     Either::B(
-        Future::join3(
+        Future::join4(
+            rename_one(old_name, new_name, XLARGE, bucket, saver, loader),
             rename_one(old_name, new_name, LARGE, bucket, saver, loader),
             rename_one(old_name, new_name, MEDIUM, bucket, saver, loader),
             rename_one(old_name, new_name, SMALL, bucket, saver, loader),
