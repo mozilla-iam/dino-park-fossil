@@ -36,7 +36,7 @@ pub fn retrieve_avatar_from_store(
             return Either::B(Err(RetrieveError::NotFound.into()).into_future());
         }
     }
-    let fallback_size = size.to_owned();
+    let is_528 = size == "528";
     let fallback_loader = Arc::clone(loader);
     let fallback_internal = internal.to_string();
     let fallback_bucket = settings.s3_bucket.clone();
@@ -44,7 +44,7 @@ pub fn retrieve_avatar_from_store(
         loader
             .load(&internal.to_string(), size, &settings.s3_bucket)
             .or_else(move |e| {
-                if fallback_size == "528" {
+                if is_528 {
                     fallback_loader.load(&fallback_internal, "264", &fallback_bucket)
                 } else {
                     Box::new(Err(e).into_future())
