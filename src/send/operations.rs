@@ -5,6 +5,7 @@ use failure::Error;
 use futures::future;
 use futures::future::Either;
 use futures::Future;
+use log::warn;
 use std::sync::Arc;
 
 const RAW: &str = "raw";
@@ -18,8 +19,15 @@ pub fn delete(
     bucket: &str,
     saver: &Arc<impl Saver>,
 ) -> impl Future<Item = (), Error = Error> {
-    Future::join4(
-        saver.delete(name, XLARGE, bucket),
+    Future::join5(
+        saver.delete(name, RAW, bucket).or_else(|e| {
+            warn!("unable to delte RAW picture: {}", e);
+            Ok(())
+        }),
+        saver.delete(name, XLARGE, bucket).or_else(|e| {
+            warn!("unable to delete XLARGE picture: {}", e);
+            Ok(())
+        }),
         saver.delete(name, LARGE, bucket),
         saver.delete(name, MEDIUM, bucket),
         saver.delete(name, SMALL, bucket),
@@ -61,8 +69,15 @@ pub fn rename(
         return Either::A(future::ok(()));
     }
     Either::B(
-        Future::join4(
-            rename_one(old_name, new_name, XLARGE, bucket, saver, loader),
+        Future::join5(
+            rename_one(old_name, new_name, RAW, bucket, saver, loader).or_else(|e| {
+                warn!("unable to rename RAW picture: {}", e);
+                Ok(())
+            }),
+            rename_one(old_name, new_name, XLARGE, bucket, saver, loader).or_else(|e| {
+                warn!("unable to rename XLARGE picture: {}", e);
+                Ok(())
+            }),
             rename_one(old_name, new_name, LARGE, bucket, saver, loader),
             rename_one(old_name, new_name, MEDIUM, bucket, saver, loader),
             rename_one(old_name, new_name, SMALL, bucket, saver, loader),

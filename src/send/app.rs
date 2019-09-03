@@ -21,6 +21,8 @@ use actix_web::Error;
 use futures::future;
 use futures::Future;
 use futures::Stream;
+use serde::Deserialize;
+use serde::Serialize;
 use std::sync::Arc;
 
 #[derive(Deserialize, Serialize)]

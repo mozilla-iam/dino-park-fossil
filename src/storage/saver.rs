@@ -2,6 +2,7 @@ use chrono::Duration;
 use chrono::Utc;
 use failure::Error;
 use futures::Future;
+use log::info;
 use rusoto_s3::DeleteObjectRequest;
 use rusoto_s3::PutObjectRequest;
 use rusoto_s3::S3;

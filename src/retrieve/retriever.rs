@@ -6,6 +6,7 @@ use failure::Error;
 use futures::future::Either;
 use futures::future::IntoFuture;
 use futures::Future;
+use log::warn;
 use std::convert::TryFrom;
 use std::sync::Arc;
 
@@ -60,6 +61,7 @@ pub fn retrieve_avatar_from_store(
 #[cfg(test)]
 mod test {
     use super::*;
+    use failure::format_err;
 
     struct DummyLoader {
         retrieve_528: bool,
@@ -95,6 +97,7 @@ mod test {
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),
             retrieve_by_id_path: String::from("/api/v666"),
+            picture_api_url: String::from("https://localhost"),
         };
         let loader = Arc::new(DummyLoader {
             retrieve_528: false,
@@ -117,6 +120,7 @@ mod test {
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),
             retrieve_by_id_path: String::from("/api/v666"),
+            picture_api_url: String::from("https://localhost"),
         };
         let loader = Arc::new(DummyLoader { retrieve_528: true });
         let picture = ExternalFileName::from_uuid_and_display(uuid, display).filename();

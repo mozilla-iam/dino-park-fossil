@@ -1,7 +1,6 @@
 use actix_multipart::Field;
 use actix_multipart::Multipart;
 use actix_multipart::MultipartError;
-
 use actix_web::error;
 use actix_web::web::Bytes;
 use failure::Error;
@@ -9,6 +8,7 @@ use futures::future;
 use futures::Future;
 use futures::Stream;
 use image::FilterType;
+use log::info;
 
 #[derive(Debug, Fail)]
 pub enum ConverterError {

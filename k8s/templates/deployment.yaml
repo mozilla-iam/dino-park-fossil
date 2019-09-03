@@ -44,6 +44,8 @@ spec:
               value: "{{ .Values.s3_bucket }}"
             - name: AVATAR__RETRIEVE_BY_ID_PATH
               value: "{{ .Values.retrieve_by_id_path }}"
+            - name: AVATAR__PICTURE_API_URL
+              value: "{{ .Values.picture_api_url }}"
           volumeMounts:
             - name: settings-secrets
               mountPath: "/data"

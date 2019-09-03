@@ -2,3 +2,4 @@ env: test
 namespace: dinopark-test
 assume_role: arn:aws:iam::320464205386:role/dino-park-fossil-role-test-us-west-2
 s3_bucket: cis-avatars-test
+picture_api_url: https://picture.api.test.sso.allizom.org
