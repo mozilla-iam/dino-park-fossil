@@ -1,6 +1,7 @@
 use failure::Error;
 use futures::Future;
 use futures::Stream;
+use log::info;
 use rusoto_s3::GetObjectRequest;
 use rusoto_s3::S3;
 

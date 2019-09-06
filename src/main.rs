@@ -1,31 +1,5 @@
-extern crate actix_cors;
-extern crate actix_multipart;
-extern crate actix_web;
-extern crate base64;
-extern crate chrono;
-extern crate cis_client;
-extern crate cis_profile;
-extern crate config;
-extern crate data_url;
-extern crate dino_park_gate;
-extern crate env_logger;
-extern crate futures;
-extern crate image;
-extern crate reqwest;
-extern crate rusoto_core;
-extern crate rusoto_s3;
-extern crate serde;
-extern crate sha2;
-extern crate uuid;
-
-#[macro_use]
-extern crate failure;
 #[macro_use]
 extern crate failure_derive;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_derive;
 
 mod healthz;
 mod retrieve;
@@ -36,7 +10,6 @@ mod storage;
 
 use crate::storage::loader::S3Loader;
 use crate::storage::saver::S3Saver;
-
 use actix_web::middleware::Logger;
 use actix_web::web;
 use actix_web::App;
@@ -44,6 +17,7 @@ use actix_web::HttpServer;
 use cis_client::CisClient;
 use dino_park_gate::provider::Provider;
 use failure::Error;
+use log::info;
 use retrieve::app::retrieve_app;
 use scale::app::scale_app;
 use send::app::send_app;

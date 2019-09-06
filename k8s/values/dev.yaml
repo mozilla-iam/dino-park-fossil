@@ -2,3 +2,4 @@ env: dev
 namespace: dinopark-dev
 assume_role: arn:aws:iam::320464205386:role/dino-park-fossil-role-dev-us-west-2
 s3_bucket: cis-avatars-dev
+picture_api_url: https://picture.api.dev.sso.allizom.org

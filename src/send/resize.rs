@@ -1,4 +1,5 @@
 use data_url::DataUrl;
+use failure::format_err;
 use failure::Error;
 use image::DynamicImage;
 use image::FilterType;

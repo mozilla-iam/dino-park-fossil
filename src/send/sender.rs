@@ -14,6 +14,9 @@ use failure::Error;
 use futures::future::Either;
 use futures::Future;
 use futures::IntoFuture;
+use log::info;
+use log::warn;
+use serde::Serialize;
 use std::sync::Arc;
 
 #[derive(Debug, Fail)]
@@ -41,7 +44,12 @@ pub fn change_display_level(
     };
     let file_name = ExternalFileName::from_uuid_and_display(uuid, &change_display.display);
     let result = PictureUrl {
-        url: format!("{}{}", settings.retrieve_by_id_path, &file_name.filename()),
+        url: format!(
+            "{}{}{}",
+            settings.picture_api_url,
+            settings.retrieve_by_id_path,
+            &file_name.filename()
+        ),
     };
     if old_file_name.internal.uuid_hash != file_name.internal.uuid_hash {
         return Either::B(Err(SaveError::UuidMismatch.into()).into_future());
@@ -113,7 +121,12 @@ fn check_resize_store(
     let saver = Arc::clone(saver);
     let bucket = settings.s3_bucket.clone();
     let result = PictureUrl {
-        url: format!("{}{}", settings.retrieve_by_id_path, &file_name.filename()),
+        url: format!(
+            "{}{}{}",
+            settings.picture_api_url,
+            settings.retrieve_by_id_path,
+            &file_name.filename()
+        ),
     };
     Either::A(
         {
@@ -150,6 +163,7 @@ pub fn store_intermediate(
 #[cfg(test)]
 mod test {
     use super::*;
+    use failure::format_err;
 
     struct DummySaver {
         delete: bool,
@@ -187,6 +201,7 @@ mod test {
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),
             retrieve_by_id_path: String::from("/api/v666"),
+            picture_api_url: String::from("https://localhost"),
         };
         let saver = Arc::new(DummySaver {
             delete: true,
@@ -208,6 +223,7 @@ mod test {
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),
             retrieve_by_id_path: String::from("/api/v666"),
+            picture_api_url: String::from("https://localhost"),
         };
         let saver = Arc::new(DummySaver {
             delete: true,

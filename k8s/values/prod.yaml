@@ -2,3 +2,4 @@ env: prod
 namespace: dinopark-prod
 assume_role: arn:aws:iam::320464205386:role/dino-park-fossil-role-prod-us-west-2
 s3_bucket: cis-avatars-prod
+picture_api_url: https://picture.api.sso.mozilla.com
