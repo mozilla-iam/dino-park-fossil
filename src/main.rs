@@ -18,10 +18,12 @@ use cis_client::CisClient;
 use dino_park_gate::provider::Provider;
 use failure::Error;
 use log::info;
+use lru_time_cache::LruCache;
 use retrieve::app::retrieve_app;
 use scale::app::scale_app;
 use send::app::send_app;
 use std::sync::Arc;
+use std::sync::RwLock;
 
 fn main() -> Result<(), Error> {
     ::std::env::set_var("RUST_LOG", "actix_web=info,dino_park_fossil=info");
@@ -38,6 +40,11 @@ fn main() -> Result<(), Error> {
         s3_client: s3_client.clone(),
     });
     let provider = Provider::from_issuer("https://auth.mozilla.auth0.com/")?;
+
+    let time_to_live = ::std::time::Duration::from_secs(60 * 60 * 24);
+    let cache = Arc::new(RwLock::new(
+        LruCache::<String, String>::with_expiry_duration_and_capacity(time_to_live, 2000),
+    ));
     // Start http server
     HttpServer::new(move || {
         App::new()
@@ -50,6 +57,7 @@ fn main() -> Result<(), Error> {
                         avatar_settings.clone(),
                         Arc::clone(&loader),
                         provider.clone(),
+                        Arc::clone(&cache),
                     ))
                     .service(send_app(
                         avatar_settings.clone(),
