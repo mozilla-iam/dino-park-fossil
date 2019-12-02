@@ -3,6 +3,7 @@ use chrono::Utc;
 use failure::Error;
 use sha2;
 use sha2::Digest;
+use std::fmt;
 
 static FILE_ENDING: &str = "png";
 
@@ -14,18 +15,25 @@ pub enum NameError {
     InvalidName,
 }
 
+pub fn uuid_hash(uuid: &str) -> String {
+    format!("{:x}", sha2::Sha256::digest(uuid.as_bytes()))
+}
+
 pub struct InternalFileName {
     pub uuid_hash: String,
     pub display: String,
 }
 
-impl InternalFileName {
-    pub fn to_string(&self) -> String {
-        format!("{}_{}.{}", &self.uuid_hash, &self.display, FILE_ENDING)
+impl fmt::Display for InternalFileName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}_{}.{}", &self.uuid_hash, &self.display, FILE_ENDING)
     }
+}
+
+impl InternalFileName {
     pub fn from_uuid_and_display(uuid: &str, display: &str) -> Self {
         InternalFileName {
-            uuid_hash: format!("{:x}", sha2::Sha256::digest(uuid.as_bytes())),
+            uuid_hash: uuid_hash(uuid),
             display: display.to_owned(),
         }
     }
