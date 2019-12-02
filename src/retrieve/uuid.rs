@@ -44,7 +44,7 @@ pub fn get_uuid<T: AsyncCisClientTrait>(
                         info!("{}", msg);
                         Some(uuid)
                     } else {
-                        warn!("faild to look up uuid for {}", &user_id_f);
+                        warn!("failed to look up uuid for {}", &user_id_f);
                         None
                     }
                 }),
