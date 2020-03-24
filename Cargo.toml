@@ -9,28 +9,35 @@ default = []
 localuserscope = ["dino_park_gate/localuserscope"]
 
 [dependencies]
-cis_client = { git = "https://github.com/fiji-flo/cis_client-rust", branch = "0.1.6", version = "0.1.6" }
-cis_profile = { git = "https://github.com/fiji-flo/cis_profile-rust", branch = "0.1.4", version = "0.1.4", features = ["aws", "vendored"] }
-dino_park_gate = { git = "https://github.com/fiji-flo/dino-park-gate", branch = "0.1.1", version = "0.1.1" }
-actix-web = { version = "1.0", features = ["ssl"] }
-actix-cors = "0.1.0"
-actix-multipart = "0.1.1"
-futures = "0.1"
+cis_client = { git = "https://github.com/mozilla-iam/cis_client-rust", tag = "0.6.1", version = "0.6.1", features = ["sync"] }
+cis_profile = { git = "https://github.com/mozilla-iam/cis_profile-rust", tag = "0.4.0", version = "0.4.0", features = ["aws", "vendored", "graphql"] }
+dino_park_gate = { git = "https://github.com/mozilla-iam/dino-park-gate", tag = "0.6.0", version = "0.6.0" }
+dino_park_trust = { git = "https://github.com/mozilla-iam/dino-park-trust", tag = "0.0.5", version = "0.0.5" }
+dino_park_guard = { git = "https://github.com/mozilla-iam/dino-park-guard", tag = "0.0.1", version = "0.0.1" }
+actix-web = "2.0"
+actix-rt = "1.0"
+actix-cors = "0.2"
+actix-multipart = "0.2"
+bytes = "0.5"
+futures = "0.3"
 log = "0.4"
 env_logger = "0.7"
 serde = "1.0.80"
 serde_json = "1.0.32"
 serde_derive = "1.0.80"
-reqwest = "0.9.17"
+reqwest = "0.10"
 chrono = "0.4.6"
-config = "0.9"
-rusoto_core = "0.42.0"
-rusoto_s3 = "0.42.0"
-image = "0.22"
+config = "0.10"
+rusoto_core = "0.43.0"
+rusoto_s3 = "0.43.0"
+image = "0.23"
 failure = "0.1.5"
 failure_derive = "0.1.5"
 data-url = "0.1.0"
-base64 = "0.11"
+base64 = "0.12"
 sha2 = "0.8"
 uuid = { version = "0.8", features = ["v4"] }
-lru_time_cache = "0.9.0"
+lru_time_cache = "0.10.0"
+
+[dev-dependencies]
+tokio = "0.2"

@@ -8,7 +8,6 @@ use crate::storage::loader::Loader;
 use crate::storage::saver::Saver;
 use actix_cors::Cors;
 use actix_multipart::Multipart;
-use actix_multipart::MultipartError;
 use actix_web::dev::HttpServiceFactory;
 use actix_web::error;
 use actix_web::http;
@@ -18,12 +17,10 @@ use actix_web::web::Data;
 use actix_web::web::Json;
 use actix_web::web::Path;
 use actix_web::Error;
-use futures::future;
-use futures::Future;
-use futures::Stream;
+use futures::StreamExt;
+use futures::TryStreamExt;
 use serde::Deserialize;
 use serde::Serialize;
-use std::sync::Arc;
 
 #[derive(Deserialize, Serialize)]
 struct Uuid {
@@ -50,82 +47,95 @@ pub struct ChangeDisplay {
     pub old_url: String,
 }
 
-fn send_avatar<S: Saver + Clone>(
+async fn send_avatar<S: Saver>(
     avatar_settings: Data<AvatarSettings>,
-    saver: Data<Arc<S>>,
+    saver: Data<S>,
     path: Path<Uuid>,
     body: Json<Avatar>,
-) -> impl Future<Item = Json<PictureUrl>, Error = Error> {
-    check_resize_store_data_uri(&avatar_settings, &saver, &path.uuid, body.0)
-        .map(Json)
-        .map_err(error::ErrorBadRequest)
+) -> Result<Json<PictureUrl>, Error> {
+    match check_resize_store_data_uri(
+        &avatar_settings,
+        saver.into_inner(),
+        &path.uuid,
+        body.into_inner(),
+    )
+    .await
+    {
+        Ok(picture_url) => Ok(Json(picture_url)),
+        Err(e) => Err(error::ErrorBadRequest(e)),
+    }
 }
 
-fn send_save<S: Saver + Clone, L: Loader + Clone>(
+async fn send_save<S: Saver, L: Loader>(
     avatar_settings: Data<AvatarSettings>,
-    loader: Data<Arc<L>>,
-    saver: Data<Arc<S>>,
+    loader: Data<L>,
+    saver: Data<S>,
     path: Path<Uuid>,
     body: Json<Save>,
-) -> impl Future<Item = Json<PictureUrl>, Error = Error> {
-    check_resize_store_intermediate(&avatar_settings, &saver, &loader, &path.uuid, body.0)
-        .map(Json)
-        .map_err(error::ErrorBadRequest)
+) -> Result<Json<PictureUrl>, Error> {
+    match check_resize_store_intermediate(
+        &avatar_settings,
+        saver.into_inner(),
+        loader.into_inner(),
+        &path.uuid,
+        body.into_inner(),
+    )
+    .await
+    {
+        Ok(picture_url) => Ok(Json(picture_url)),
+        Err(e) => Err(error::ErrorBadRequest(e)),
+    }
 }
 
-fn send_intermediate<S: Saver + Clone>(
+async fn send_intermediate<S: Saver>(
     avatar_settings: Data<AvatarSettings>,
-    saver: Data<Arc<S>>,
-    multipart: Multipart,
-) -> impl Future<Item = Json<Uuid>, Error = Error> {
-    multipart
-        .map(move |field| {
-            let saver = Arc::clone(&saver);
-            let bucket = avatar_settings.s3_bucket.clone();
-            field
-                .fold(Vec::<u8>::new(), |mut acc: Vec<u8>, bytes: Bytes| {
+    saver: Data<S>,
+    mut multipart: Multipart,
+) -> Result<Json<Uuid>, Error> {
+    if let Some(item) = multipart.next().await {
+        let bucket = avatar_settings.s3_bucket.clone();
+        let field = item?;
+        let buf = field
+            .try_fold(
+                Vec::<u8>::new(),
+                |mut acc: Vec<u8>, bytes: Bytes| async move {
                     acc.extend(bytes.into_iter());
-                    future::result(Ok(acc).map_err(|e| {
-                        println!("file.write_all failed: {:?}", e);
-                        MultipartError::Payload(error::PayloadError::Io(e))
-                    }))
-                })
-                .map_err(|e| {
-                    println!("failed multipart for intermediate, {:?}", e);
-                    error::ErrorBadRequest(e)
-                })
-                .and_then(move |buf: Vec<u8>| {
-                    store_intermediate(bucket, saver, buf).map_err(error::ErrorBadRequest)
-                })
-                .into_stream()
-        })
-        .map_err(error::ErrorBadRequest)
-        .flatten()
-        .collect()
-        .map(|mut v| v.pop().unwrap_or_default())
-        .map_err(Into::into)
-        .map(|uuid| Json(Uuid { uuid }))
+                    Ok(acc)
+                },
+            )
+            .await
+            .map_err(error::ErrorBadRequest)?;
+        let uuid = store_intermediate(bucket, saver.into_inner(), buf)
+            .await
+            .map_err(error::ErrorBadRequest)?;
+        Ok(Json(Uuid { uuid }))
+    } else {
+        Err(error::ErrorBadRequest(""))
+    }
 }
 
-fn update_display<S: Saver + Clone, L: Loader + Clone>(
+async fn update_display<S: Saver, L: Loader>(
     avatar_settings: Data<AvatarSettings>,
-    loader: Data<Arc<L>>,
-    saver: Data<Arc<S>>,
+    loader: Data<L>,
+    saver: Data<S>,
     path: Path<Uuid>,
     body: Json<ChangeDisplay>,
-) -> impl Future<Item = Json<PictureUrl>, Error = Error> {
-    change_display_level(&avatar_settings, &loader, &saver, &path.uuid, &body)
-        .map(Json)
-        .map_err(error::ErrorBadRequest)
+) -> Result<Json<PictureUrl>, Error> {
+    match change_display_level(
+        &avatar_settings,
+        &loader.into_inner(),
+        &saver.into_inner(),
+        &path.uuid,
+        &body.into_inner(),
+    )
+    .await
+    {
+        Ok(picture_url) => Ok(Json(picture_url)),
+        Err(e) => Err(error::ErrorBadRequest(e)),
+    }
 }
 
-pub fn send_app<
-    S: Saver + Clone + Send + Sync + 'static,
-    L: Loader + Clone + Send + Sync + 'static,
->(
-    avatar_settings: AvatarSettings,
-    saver: Arc<S>,
-    loader: Arc<L>,
+pub fn send_app<S: Saver + Send + Sync + 'static, L: Loader + Send + Sync + 'static>(
 ) -> impl HttpServiceFactory {
     web::scope("/send")
         .wrap(
@@ -133,16 +143,11 @@ pub fn send_app<
                 .allowed_methods(vec!["POST"])
                 .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
                 .allowed_header(http::header::CONTENT_TYPE)
-                .max_age(3600),
+                .max_age(3600)
+                .finish(),
         )
-        .data(loader)
-        .data(saver)
-        .data(avatar_settings)
-        .data(web::JsonConfig::default().limit(1_048_576))
-        .service(web::resource("/intermediate").route(web::post().to_async(send_intermediate::<S>)))
-        .service(web::resource("/{uuid}").route(web::post().to_async(send_avatar::<S>)))
-        .service(web::resource("/save/{uuid}").route(web::post().to_async(send_save::<S, L>)))
-        .service(
-            web::resource("/display/{uuid}").route(web::post().to_async(update_display::<S, L>)),
-        )
+        .service(web::resource("/intermediate").route(web::post().to(send_intermediate::<S>)))
+        .service(web::resource("/{uuid}").route(web::post().to(send_avatar::<S>)))
+        .service(web::resource("/save/{uuid}").route(web::post().to(send_save::<S, L>)))
+        .service(web::resource("/display/{uuid}").route(web::post().to(update_display::<S, L>)))
 }

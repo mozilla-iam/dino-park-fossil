@@ -1,8 +1,8 @@
 use data_url::DataUrl;
 use failure::format_err;
 use failure::Error;
+use image::imageops::FilterType;
 use image::DynamicImage;
-use image::FilterType;
 use image::GenericImageView;
 
 #[derive(Debug, Fail)]
@@ -55,6 +55,6 @@ pub fn png_from_data_uri(data_uri: &str) -> Result<Vec<u8>, Error> {
 fn downsize(size: u32, img: &DynamicImage) -> Result<Vec<u8>, Error> {
     let down_sized = img.resize_to_fill(size, size, FilterType::Lanczos3);
     let mut buf: Vec<u8> = Vec::new();
-    down_sized.write_to(&mut buf, image::ImageOutputFormat::PNG)?;
+    down_sized.write_to(&mut buf, image::ImageOutputFormat::Png)?;
     Ok(buf)
 }

@@ -11,9 +11,6 @@ use crate::storage::loader::Loader;
 use crate::storage::name::ExternalFileName;
 use crate::storage::saver::Saver;
 use failure::Error;
-use futures::future::Either;
-use futures::Future;
-use futures::IntoFuture;
 use log::info;
 use log::warn;
 use serde::Serialize;
@@ -30,18 +27,15 @@ pub struct PictureUrl {
     pub url: String,
 }
 
-pub fn change_display_level(
+pub async fn change_display_level(
     settings: &AvatarSettings,
     loader: &Arc<impl Loader>,
     saver: &Arc<impl Saver>,
     uuid: &str,
     change_display: &ChangeDisplay,
-) -> impl Future<Item = PictureUrl, Error = Error> {
+) -> Result<PictureUrl, Error> {
     info!("changing display level for {}", uuid);
-    let old_file_name = match ExternalFileName::from_uri(&change_display.old_url) {
-        Ok(old_file_name) => old_file_name,
-        Err(e) => return Either::B(Err(e).into_future()),
-    };
+    let old_file_name = ExternalFileName::from_uri(&change_display.old_url)?;
     let file_name = ExternalFileName::from_uuid_and_display(uuid, &change_display.display);
     let result = PictureUrl {
         url: format!(
@@ -52,73 +46,53 @@ pub fn change_display_level(
         ),
     };
     if old_file_name.internal.uuid_hash != file_name.internal.uuid_hash {
-        return Either::B(Err(SaveError::UuidMismatch.into()).into_future());
+        return Err(SaveError::UuidMismatch.into());
     }
-    Either::A(
-        rename(
-            &old_file_name.internal.to_string(),
-            &file_name.internal.to_string(),
-            &settings.s3_bucket,
-            saver,
-            loader,
-        )
-        .map(move |_| result),
+    rename(
+        &old_file_name.internal.to_string(),
+        &file_name.internal.to_string(),
+        &settings.s3_bucket,
+        saver,
+        loader,
     )
+    .await?;
+    Ok(result)
 }
 
-pub fn check_resize_store_data_uri(
+pub async fn check_resize_store_data_uri(
     settings: &AvatarSettings,
-    saver: &Arc<impl Saver>,
+    saver: Arc<impl Saver>,
     uuid: &str,
     avatar: Avatar,
-) -> impl Future<Item = PictureUrl, Error = Error> {
-    let buf = match png_from_data_uri(&avatar.data_uri) {
-        Ok(buf) => buf,
-        Err(e) => return Either::B(Err(e).into_future()),
-    };
-    Either::A(check_resize_store(
-        settings,
-        saver,
-        uuid,
-        buf,
-        &avatar.display,
-        &avatar.old_url,
-    ))
+) -> Result<PictureUrl, Error> {
+    let buf = png_from_data_uri(&avatar.data_uri)?;
+    check_resize_store(settings, saver, uuid, buf, &avatar.display, &avatar.old_url).await
 }
 
-pub fn check_resize_store_intermediate(
+pub async fn check_resize_store_intermediate(
     settings: &AvatarSettings,
-    saver: &Arc<impl Saver>,
-    loader: &Arc<impl Loader>,
+    saver: Arc<impl Saver>,
+    loader: Arc<impl Loader>,
     uuid: &str,
     save: Save,
-) -> impl Future<Item = PictureUrl, Error = Error> {
-    let settings = settings.clone();
-    let saver = Arc::clone(saver);
-    let loader = Arc::clone(loader);
-    let uuid = uuid.to_owned();
-    loader
+) -> Result<PictureUrl, Error> {
+    let buf = loader
         .load(&save.intermediate, "tmp", &settings.s3_bucket)
-        .and_then(move |buf| {
-            check_resize_store(&settings, &saver, &uuid, buf, &save.display, &save.old_url)
-        })
+        .await?;
+    check_resize_store(&settings, saver, uuid, buf, &save.display, &save.old_url).await
 }
 
-fn check_resize_store(
+async fn check_resize_store(
     settings: &AvatarSettings,
-    saver: &Arc<impl Saver>,
+    saver: Arc<impl Saver>,
     uuid: &str,
     buf: Vec<u8>,
     display: &str,
     old_url: &Option<String>,
-) -> impl Future<Item = PictureUrl, Error = Error> {
+) -> Result<PictureUrl, Error> {
     info!("uploading image for {}", uuid);
     let file_name = ExternalFileName::from_uuid_and_display(uuid, display);
-    let avatars = match Avatars::new(buf) {
-        Ok(avatars) => avatars,
-        Err(e) => return Either::B(Err(e).into_future()),
-    };
-    let saver = Arc::clone(saver);
+    let avatars = Avatars::new(buf)?;
     let bucket = settings.s3_bucket.clone();
     let result = PictureUrl {
         url: format!(
@@ -128,75 +102,61 @@ fn check_resize_store(
             &file_name.filename()
         ),
     };
-    Either::A(
-        {
-            if let Some(old_url) = old_url {
-                let old_file_name = ExternalFileName::from_uri(&old_url);
-                match old_file_name {
-                    Ok(name) => Either::A(delete(
-                        &name.internal.to_string(),
-                        &settings.s3_bucket,
-                        &saver,
-                    )),
-                    Err(e) => {
-                        warn!("{} for {}: {}", e, uuid, old_url);
-                        Either::B(Ok(()).into_future())
-                    }
-                }
-            } else {
-                Either::B(Ok(()).into_future())
+    if let Some(old_url) = old_url {
+        let old_file_name = ExternalFileName::from_uri(&old_url);
+        match old_file_name {
+            Ok(name) => {
+                delete(&name.internal.to_string(), &settings.s3_bucket, &saver).await?;
+            }
+            Err(e) => {
+                warn!("{} for {}: {}", e, uuid, old_url);
             }
         }
-        .and_then(move |_| save(avatars, &file_name.internal.to_string(), &bucket, &saver))
-        .map(|_| result),
-    )
+    }
+    save(avatars, &file_name.internal.to_string(), &bucket, &saver).await?;
+    Ok(result)
 }
 
-pub fn store_intermediate(
+pub async fn store_intermediate(
     bucket: String,
     saver: Arc<impl Saver>,
     buf: Vec<u8>,
-) -> impl Future<Item = String, Error = Error> {
-    saver.save_tmp(&bucket, buf)
+) -> Result<String, Error> {
+    saver.save_tmp(&bucket, buf).await
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use failure::format_err;
+    use futures::future::BoxFuture;
 
     struct DummySaver {
         delete: bool,
         save: bool,
     }
     impl Saver for DummySaver {
-        fn save(
-            &self,
-            _: &str,
-            _: &str,
-            _: &str,
-            _: Vec<u8>,
-        ) -> Box<dyn Future<Item = (), Error = Error>> {
+        fn save(&self, _: &str, _: &str, _: &str, _: Vec<u8>) -> BoxFuture<Result<(), Error>> {
             let ret = match self.save {
                 true => Ok(()),
                 false => Err(format_err!("doom")),
             };
-            Box::new(ret.into_future())
+            Box::pin(async move { ret })
         }
-        fn delete(&self, _: &str, _: &str, _: &str) -> Box<dyn Future<Item = (), Error = Error>> {
+        fn delete(&self, _: &str, _: &str, _: &str) -> BoxFuture<Result<(), Error>> {
             let ret = match self.delete {
                 true => Ok(()),
                 false => Err(format_err!("doom")),
             };
-            Box::new(ret.into_future())
+            Box::pin(async move { ret })
         }
-        fn save_tmp(&self, _: &str, _: Vec<u8>) -> Box<dyn Future<Item = String, Error = Error>> {
-            Box::new(Ok(String::from("936DA01F9ABD4d9d80C702AF85C822A8")).into_future())
+        fn save_tmp(&self, _: &str, _: Vec<u8>) -> BoxFuture<Result<String, Error>> {
+            Box::pin(async { Ok(String::from("936DA01F9ABD4d9d80C702AF85C822A8")) })
         }
     }
 
-    #[test]
-    fn test_check_resize_store_without_old() -> Result<(), Error> {
+    #[tokio::test]
+    async fn test_check_resize_store_without_old() -> Result<(), Error> {
         let data = include_str!("../../tests/data/dino.data");
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),
@@ -213,12 +173,12 @@ mod test {
             display: String::from("private"),
             old_url: None,
         };
-        check_resize_store_data_uri(&settings, &saver, uuid, avatar).wait()?;
+        check_resize_store_data_uri(&settings, saver, uuid, avatar).await?;
         Ok(())
     }
 
-    #[test]
-    fn test_check_resize_store_with_old() -> Result<(), Error> {
+    #[tokio::test]
+    async fn test_check_resize_store_with_old() -> Result<(), Error> {
         let data = include_str!("../../tests/data/dino.data");
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),
@@ -237,7 +197,7 @@ mod test {
                 "MmU5ODFiODZkNWY3N2Y1NDY2ZWM1NmUyYjQwM2RlYWUyOTI3MGYwMDllOGFmZGE1ODNjZjEyNzQ3YjQ0NzQyNiNzdGFmZiMxNTU0MDQ1OTgz.png",
             )),
         };
-        check_resize_store_data_uri(&settings, &saver, uuid, avatar).wait()?;
+        check_resize_store_data_uri(&settings, saver, uuid, avatar).await?;
         Ok(())
     }
 }
