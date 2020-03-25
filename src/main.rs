@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate failure_derive;
 
+mod error;
 mod healthz;
 mod retrieve;
 mod send;
@@ -16,9 +17,12 @@ use actix_web::App;
 use actix_web::HttpServer;
 use cis_client::CisClient;
 use dino_park_gate::provider::Provider;
+use dino_park_gate::scope::ScopeAndUserAuth;
 use log::info;
 use lru_time_cache::LruCache;
 use retrieve::app::retrieve_app;
+use rusoto_s3::S3Client;
+use send::app::internal_send_app;
 use send::app::send_app;
 use std::io::Error;
 use std::io::ErrorKind;
@@ -36,7 +40,7 @@ async fn main() -> std::io::Result<()> {
     let s = settings::Settings::new().map_err(map_io_err)?;
     let cis_client = Data::new(CisClient::from_settings(&s.cis).await.map_err(map_io_err)?);
     let avatar_settings = Data::new(s.avatar.clone());
-    let s3_client = rusoto_s3::S3Client::new(rusoto_core::Region::default());
+    let s3_client = S3Client::new(rusoto_core::Region::default());
     let saver = Data::new(S3Saver {
         s3_client: s3_client.clone(),
     });
@@ -53,6 +57,7 @@ async fn main() -> std::io::Result<()> {
     ));
     // Start http server
     HttpServer::new(move || {
+        let scope_middleware = ScopeAndUserAuth::new(provider.clone()).public();
         App::new()
             .wrap(Logger::default().exclude("/healthz"))
             .app_data(loader.clone())
@@ -62,14 +67,14 @@ async fn main() -> std::io::Result<()> {
             .app_data(avatar_settings.clone())
             .service(
                 web::scope("/avatar")
-                    .service(retrieve_app::<CisClient, S3Loader<rusoto_s3::S3Client>>(
-                        provider.clone(),
+                    .service(retrieve_app::<CisClient, S3Loader<S3Client>>(
+                        scope_middleware.clone(),
                     ))
-                    .service(send_app::<
-                        S3Saver<rusoto_s3::S3Client>,
-                        S3Loader<rusoto_s3::S3Client>,
-                    >()),
+                    .service(send_app::<S3Saver<S3Client>, S3Loader<S3Client>>(
+                        scope_middleware,
+                    )),
             )
+            .service(internal_send_app::<S3Saver<S3Client>, S3Loader<S3Client>>())
             .service(healthz::healthz_app())
     })
     .bind("0.0.0.0:8083")?

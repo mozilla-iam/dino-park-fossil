@@ -16,7 +16,6 @@ use actix_web::Error;
 use actix_web::HttpResponse;
 use cis_client::AsyncCisClientTrait;
 use cis_profile::schema::Display;
-use dino_park_gate::provider::Provider;
 use dino_park_gate::scope::ScopeAndUser;
 use dino_park_gate::scope::ScopeAndUserAuth;
 use dino_park_trust::Trust;
@@ -78,9 +77,8 @@ pub fn retrieve_app<
     T: AsyncCisClientTrait + Clone + Send + Sync + 'static,
     L: Loader + Send + Sync + 'static,
 >(
-    provider: Provider,
+    middleware: ScopeAndUserAuth,
 ) -> impl HttpServiceFactory {
-    let scope_middleware = ScopeAndUserAuth::new(provider).public();
     web::scope("/get")
         .wrap(
             Cors::new()
@@ -90,9 +88,6 @@ pub fn retrieve_app<
                 .max_age(3600)
                 .finish(),
         )
-        .service(
-            web::resource("/id/{picture}")
-                .wrap(scope_middleware)
-                .route(web::get().to(retrieve_avatar::<T, L>)),
-        )
+        .wrap(middleware)
+        .service(web::resource("/id/{picture}").route(web::get().to(retrieve_avatar::<T, L>)))
 }

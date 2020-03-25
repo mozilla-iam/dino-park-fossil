@@ -684,14 +684,6 @@ version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "data-url"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "matches 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "deflate"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -720,7 +712,7 @@ dependencies = [
 
 [[package]]
 name = "dino-park-fossil"
-version = "0.0.3"
+version = "0.1.0"
 dependencies = [
  "actix-cors 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-multipart 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -732,7 +724,6 @@ dependencies = [
  "cis_client 0.6.1 (git+https://github.com/mozilla-iam/cis_client-rust?tag=0.6.1)",
  "cis_profile 0.4.0 (git+https://github.com/mozilla-iam/cis_profile-rust?tag=0.4.0)",
  "config 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "data-url 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dino_park_gate 0.6.0 (git+https://github.com/mozilla-iam/dino-park-gate?tag=0.6.0)",
  "dino_park_guard 0.0.1 (git+https://github.com/mozilla-iam/dino-park-guard?tag=0.0.1)",
  "dino_park_trust 0.0.5 (git+https://github.com/mozilla-iam/dino-park-trust?tag=0.0.5)",
@@ -743,7 +734,6 @@ dependencies = [
  "image 0.23.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "lru_time_cache 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "reqwest 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "rusoto_core 0.43.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rusoto_s3 0.43.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.105 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2911,7 +2901,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum crossbeam-utils 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c3c7c73a2d1e9fc0886a08b93e98eb643461230d5f1925e4036204d5f2e261a8"
 "checksum crypto-mac 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4434400df11d95d556bac068ddfedd482915eb18fe8bea89bc80b6e4b1c179e5"
 "checksum data-encoding 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "11c0346158a19b3627234e15596f5e465c360fcdb97d817bcb255e0510f5a788"
-"checksum data-url 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d33fe99ccedd6e84bc035f1931bb2e6be79739d6242bd895e7311c886c50dc9c"
 "checksum deflate 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)" = "050ef6de42a33903b30a7497b76b40d3d58691d4d3eec355348c122444a388f0"
 "checksum derive_more 0.99.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a806e96c59a76a5ba6e18735b6cf833344671e61e7863f2edb5c518ea2cac95c"
 "checksum digest 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f3d0c8c8752312f9713efd397ff63acb9f85585afbf179282e720e7704954dd5"

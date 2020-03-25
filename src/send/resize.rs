@@ -1,19 +1,8 @@
-use data_url::DataUrl;
 use failure::format_err;
 use failure::Error;
 use image::imageops::FilterType;
 use image::DynamicImage;
 use image::GenericImageView;
-
-#[derive(Debug, Fail)]
-pub enum ImageProcessingError {
-    #[fail(display = "invalid data uri")]
-    InvalidDataUri,
-    #[fail(display = "invalid image format")]
-    InvalidFormat,
-    #[fail(display = "invalid base 64")]
-    InvalidBase64,
-}
 
 pub struct Avatars {
     pub raw: Vec<u8>,
@@ -39,17 +28,6 @@ impl Avatars {
             x40: downsize(40, &img)?,
         })
     }
-}
-
-pub fn png_from_data_uri(data_uri: &str) -> Result<Vec<u8>, Error> {
-    let data = DataUrl::process(data_uri).map_err(|_| ImageProcessingError::InvalidDataUri)?;
-    if data.mime_type().type_ != "image" || data.mime_type().subtype != "png" {
-        return Err(ImageProcessingError::InvalidFormat.into());
-    }
-    let (buf, _) = data
-        .decode_to_vec()
-        .map_err(|_| ImageProcessingError::InvalidBase64)?;
-    Ok(buf)
 }
 
 fn downsize(size: u32, img: &DynamicImage) -> Result<Vec<u8>, Error> {

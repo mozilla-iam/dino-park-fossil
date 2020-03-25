@@ -1,10 +1,8 @@
-use crate::send::app::Avatar;
 use crate::send::app::ChangeDisplay;
 use crate::send::app::Save;
 use crate::send::operations::delete;
 use crate::send::operations::rename;
 use crate::send::operations::save;
-use crate::send::resize::png_from_data_uri;
 use crate::send::resize::Avatars;
 use crate::settings::AvatarSettings;
 use crate::storage::loader::Loader;
@@ -57,16 +55,6 @@ pub async fn change_display_level(
     )
     .await?;
     Ok(result)
-}
-
-pub async fn check_resize_store_data_uri(
-    settings: &AvatarSettings,
-    saver: Arc<impl Saver>,
-    uuid: &str,
-    avatar: Avatar,
-) -> Result<PictureUrl, Error> {
-    let buf = png_from_data_uri(&avatar.data_uri)?;
-    check_resize_store(settings, saver, uuid, buf, &avatar.display, &avatar.old_url).await
 }
 
 pub async fn check_resize_store_intermediate(
@@ -157,7 +145,7 @@ mod test {
 
     #[tokio::test]
     async fn test_check_resize_store_without_old() -> Result<(), Error> {
-        let data = include_str!("../../tests/data/dino.data");
+        let data = include_bytes!("../../tests/data/dino.png");
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),
             retrieve_by_id_path: String::from("/api/v666"),
@@ -168,18 +156,13 @@ mod test {
             save: true,
         });
         let uuid = "9e697947-2990-4182-b080-533c16af4799";
-        let avatar = Avatar {
-            data_uri: String::from(data),
-            display: String::from("private"),
-            old_url: None,
-        };
-        check_resize_store_data_uri(&settings, saver, uuid, avatar).await?;
+        check_resize_store(&settings, saver, uuid, data.to_vec(), "private", &None).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn test_check_resize_store_with_old() -> Result<(), Error> {
-        let data = include_str!("../../tests/data/dino.data");
+        let data = include_bytes!("../../tests/data/dino.png");
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),
             retrieve_by_id_path: String::from("/api/v666"),
@@ -190,14 +173,9 @@ mod test {
             save: true,
         });
         let uuid = "9e697947-2990-4182-b080-533c16af4799";
-        let avatar = Avatar {
-            data_uri: String::from(data),
-            display: String::from("private"),
-            old_url: Some(String::from(
-                "MmU5ODFiODZkNWY3N2Y1NDY2ZWM1NmUyYjQwM2RlYWUyOTI3MGYwMDllOGFmZGE1ODNjZjEyNzQ3YjQ0NzQyNiNzdGFmZiMxNTU0MDQ1OTgz.png",
-            )),
-        };
-        check_resize_store_data_uri(&settings, saver, uuid, avatar).await?;
+        let old_url = Some(String::from(
+                "MmU5ODFiODZkNWY3N2Y1NDY2ZWM1NmUyYjQwM2RlYWUyOTI3MGYwMDllOGFmZGE1ODNjZjEyNzQ3YjQ0NzQyNiNzdGFmZiMxNTU0MDQ1OTgz.png"));
+        check_resize_store(&settings, saver, uuid, data.to_vec(), "private", &old_url).await?;
         Ok(())
     }
 }
