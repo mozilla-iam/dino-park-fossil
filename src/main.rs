@@ -1,9 +1,9 @@
 #[macro_use]
 extern crate failure_derive;
 
+mod error;
 mod healthz;
 mod retrieve;
-mod scale;
 mod send;
 mod settings;
 mod storage;
@@ -12,62 +12,72 @@ use crate::storage::loader::S3Loader;
 use crate::storage::saver::S3Saver;
 use actix_web::middleware::Logger;
 use actix_web::web;
+use actix_web::web::Data;
 use actix_web::App;
 use actix_web::HttpServer;
 use cis_client::CisClient;
 use dino_park_gate::provider::Provider;
-use failure::Error;
+use dino_park_gate::scope::ScopeAndUserAuth;
 use log::info;
 use lru_time_cache::LruCache;
 use retrieve::app::retrieve_app;
-use scale::app::scale_app;
+use rusoto_s3::S3Client;
+use send::app::internal_send_app;
 use send::app::send_app;
-use std::sync::Arc;
+use std::io::Error;
+use std::io::ErrorKind;
 use std::sync::RwLock;
 
-fn main() -> Result<(), Error> {
+fn map_io_err(e: impl Into<failure::Error>) -> Error {
+    Error::new(ErrorKind::Other, e.into())
+}
+
+#[actix_rt::main]
+async fn main() -> std::io::Result<()> {
     ::std::env::set_var("RUST_LOG", "actix_web=info,dino_park_fossil=info");
     env_logger::init();
     info!("building the fossil");
-    let s = settings::Settings::new()?;
-    let cis_client = Arc::new(CisClient::from_settings(&s.cis)?);
-    let avatar_settings = s.avatar.clone();
-    let s3_client = rusoto_s3::S3Client::new(rusoto_core::Region::default());
-    let saver = Arc::new(S3Saver {
+    let s = settings::Settings::new().map_err(map_io_err)?;
+    let cis_client = Data::new(CisClient::from_settings(&s.cis).await.map_err(map_io_err)?);
+    let avatar_settings = Data::new(s.avatar.clone());
+    let s3_client = S3Client::new(rusoto_core::Region::default());
+    let saver = Data::new(S3Saver {
         s3_client: s3_client.clone(),
     });
-    let loader = Arc::new(S3Loader {
+    let loader = Data::new(S3Loader {
         s3_client: s3_client.clone(),
     });
-    let provider = Provider::from_issuer("https://auth.mozilla.auth0.com/")?;
+    let provider = Provider::from_issuer("https://auth.mozilla.auth0.com/")
+        .await
+        .map_err(map_io_err)?;
 
     let time_to_live = ::std::time::Duration::from_secs(60 * 60 * 24);
-    let cache = Arc::new(RwLock::new(
+    let cache = Data::new(RwLock::new(
         LruCache::<String, String>::with_expiry_duration_and_capacity(time_to_live, 2000),
     ));
     // Start http server
     HttpServer::new(move || {
+        let scope_middleware = ScopeAndUserAuth::new(provider.clone()).public();
         App::new()
             .wrap(Logger::default().exclude("/healthz"))
+            .app_data(loader.clone())
+            .app_data(cache.clone())
+            .app_data(saver.clone())
+            .app_data(cis_client.clone())
+            .app_data(avatar_settings.clone())
             .service(
                 web::scope("/avatar")
-                    .service(scale_app())
-                    .service(retrieve_app(
-                        Arc::clone(&cis_client),
-                        avatar_settings.clone(),
-                        Arc::clone(&loader),
-                        provider.clone(),
-                        Arc::clone(&cache),
+                    .service(retrieve_app::<CisClient, S3Loader<S3Client>>(
+                        scope_middleware.clone(),
                     ))
-                    .service(send_app(
-                        avatar_settings.clone(),
-                        Arc::clone(&saver),
-                        Arc::clone(&loader),
+                    .service(send_app::<S3Saver<S3Client>, S3Loader<S3Client>>(
+                        scope_middleware,
                     )),
             )
+            .service(internal_send_app::<S3Saver<S3Client>, S3Loader<S3Client>>())
             .service(healthz::healthz_app())
     })
     .bind("0.0.0.0:8083")?
     .run()
-    .map_err(Into::into)
+    .await
 }

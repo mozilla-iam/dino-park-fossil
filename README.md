@@ -7,9 +7,7 @@ DinoPark Fossil is DinoPark's picture service. It handles uploads, resizing and 
 
 It provides the following APIs:
 
-- `POST /avatar/send/{uuid}` to upload / change a profile picture
-- `POST /avatar/send/display/{uuid}` to change a display level of a profile picture
-- `POST /avatar/get/id/{filename}` to retrieve the picture via the _filename_ (preferred)
-- `POST /avatar/get/{primaryUsername}` to retrieve the picture via the primaryUsername
-
-For now all of these APIs are internal. We will open up the retrieving endpoints soon.
+- `GET /avatar/get/id/{pictureName}` to retrieve the picture
+- `POST /avatar/send/intermediate` to upload a new intermediate picture (will be deleted after 24h)
+- (internal) `POST /internal/send/save/{uuid}` to save an intermediate profile picture to the profile
+- (internal) `POST /internal/send/display/{uuid}` to change a display level of a profile picture

@@ -1,7 +1,7 @@
 use chrono::Duration;
 use chrono::Utc;
 use failure::Error;
-use futures::Future;
+use futures::future::BoxFuture;
 use log::info;
 use rusoto_s3::DeleteObjectRequest;
 use rusoto_s3::PutObjectRequest;
@@ -16,30 +16,24 @@ pub trait Saver {
         prefix: &str,
         bucket: &str,
         buf: Vec<u8>,
-    ) -> Box<dyn Future<Item = (), Error = Error>>;
-    fn delete(
-        &self,
-        name: &str,
-        prefix: &str,
-        bucket: &str,
-    ) -> Box<dyn Future<Item = (), Error = Error>>;
-    fn save_tmp(&self, bucket: &str, buf: Vec<u8>)
-        -> Box<dyn Future<Item = String, Error = Error>>;
+    ) -> BoxFuture<Result<(), Error>>;
+    fn delete(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<(), Error>>;
+    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> BoxFuture<Result<String, Error>>;
 }
 
 #[derive(Clone)]
-pub struct S3Saver<S: S3> {
+pub struct S3Saver<S: S3 + Send + Sync> {
     pub s3_client: S,
 }
 
-impl<S: S3> Saver for S3Saver<S> {
+impl<S: S3 + Send + Sync> Saver for S3Saver<S> {
     fn save(
         &self,
         name: &str,
         prefix: &str,
         bucket: &str,
         buf: Vec<u8>,
-    ) -> Box<dyn Future<Item = (), Error = Error>> {
+    ) -> BoxFuture<Result<(), Error>> {
         let put = PutObjectRequest {
             bucket: bucket.to_owned(),
             key: format!("{}/{}", prefix, name),
@@ -48,29 +42,18 @@ impl<S: S3> Saver for S3Saver<S> {
         };
         let name = name.to_owned();
         let bucket = bucket.to_owned();
-        Box::new(
-            self.s3_client
-                .put_object(put)
-                .map_err(Error::from)
-                .map(move |res| {
-                    info!(
-                        "uploaded {} to {} with version_id: {}",
-                        name,
-                        bucket,
-                        res.version_id
-                            .as_ref()
-                            .map(|x| x.as_str())
-                            .unwrap_or_else(|| "-"),
-                    );
-                }),
-        )
+        Box::pin(async move {
+            let res = self.s3_client.put_object(put).await?;
+            info!(
+                "uploaded {} to {} with version_id: {}",
+                name,
+                bucket,
+                res.version_id.as_deref().unwrap_or_else(|| "-"),
+            );
+            Ok(())
+        })
     }
-    fn delete(
-        &self,
-        name: &str,
-        prefix: &str,
-        bucket: &str,
-    ) -> Box<dyn Future<Item = (), Error = Error>> {
+    fn delete(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<(), Error>> {
         let delete = DeleteObjectRequest {
             bucket: bucket.to_owned(),
             key: format!("{}/{}", prefix, name),
@@ -78,28 +61,18 @@ impl<S: S3> Saver for S3Saver<S> {
         };
         let name = name.to_owned();
         let bucket = bucket.to_owned();
-        Box::new(
-            self.s3_client
-                .delete_object(delete)
-                .map_err(Error::from)
-                .map(move |res| {
-                    info!(
-                        "deleted {} from {} with version_id: {}",
-                        name,
-                        bucket,
-                        res.version_id
-                            .as_ref()
-                            .map(|x| x.as_str())
-                            .unwrap_or_else(|| "-"),
-                    );
-                }),
-        )
+        Box::pin(async move {
+            let res = self.s3_client.delete_object(delete).await?;
+            info!(
+                "deleted {} from {} with version_id: {}",
+                name,
+                bucket,
+                res.version_id.as_deref().unwrap_or_else(|| "-"),
+            );
+            Ok(())
+        })
     }
-    fn save_tmp(
-        &self,
-        bucket: &str,
-        buf: Vec<u8>,
-    ) -> Box<dyn Future<Item = String, Error = Error>> {
+    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> BoxFuture<Result<String, Error>> {
         let name = Uuid::new_v4().to_simple().to_string();
         let put = PutObjectRequest {
             bucket: bucket.to_owned(),
@@ -109,22 +82,15 @@ impl<S: S3> Saver for S3Saver<S> {
             ..Default::default()
         };
         let bucket = bucket.to_owned();
-        Box::new(
-            self.s3_client
-                .put_object(put)
-                .map_err(Error::from)
-                .map(move |res| {
-                    info!(
-                        "created tmp file {} in {} with version_id: {}",
-                        name,
-                        bucket,
-                        res.version_id
-                            .as_ref()
-                            .map(|x| x.as_str())
-                            .unwrap_or_else(|| "-"),
-                    );
-                    name
-                }),
-        )
+        Box::pin(async move {
+            let res = self.s3_client.put_object(put).await?;
+            info!(
+                "created tmp file {} in {} with version_id: {}",
+                name,
+                bucket,
+                res.version_id.as_deref().unwrap_or_else(|| "-"),
+            );
+            Ok(name)
+        })
     }
 }
