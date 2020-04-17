@@ -2,11 +2,9 @@ use crate::retrieve::retriever::retrieve_avatar_from_store;
 use crate::retrieve::uuid::get_uuid;
 use crate::settings::AvatarSettings;
 use crate::storage::loader::Loader;
-use actix_cors::Cors;
 use actix_web::dev::BodyEncoding;
 use actix_web::dev::HttpServiceFactory;
 use actix_web::error;
-use actix_web::http;
 use actix_web::http::ContentEncoding;
 use actix_web::web;
 use actix_web::web::Data;
@@ -80,14 +78,6 @@ pub fn retrieve_app<
     middleware: ScopeAndUserAuth,
 ) -> impl HttpServiceFactory {
     web::scope("/get")
-        .wrap(
-            Cors::new()
-                .allowed_methods(vec!["GET"])
-                .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-                .allowed_header(http::header::CONTENT_TYPE)
-                .max_age(3600)
-                .finish(),
-        )
         .wrap(middleware)
         .service(web::resource("/id/{picture}").route(web::get().to(retrieve_avatar::<T, L>)))
 }

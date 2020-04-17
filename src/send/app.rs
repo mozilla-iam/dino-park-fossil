@@ -6,10 +6,8 @@ use crate::send::sender::PictureUrl;
 use crate::settings::AvatarSettings;
 use crate::storage::loader::Loader;
 use crate::storage::saver::Saver;
-use actix_cors::Cors;
 use actix_multipart::Multipart;
 use actix_web::dev::HttpServiceFactory;
-use actix_web::http;
 use actix_web::web;
 use actix_web::web::Bytes;
 use actix_web::web::Data;
@@ -120,14 +118,6 @@ async fn update_display<S: Saver, L: Loader>(
 pub fn internal_send_app<S: Saver + Send + Sync + 'static, L: Loader + Send + Sync + 'static>(
 ) -> impl HttpServiceFactory {
     web::scope("/internal")
-        .wrap(
-            Cors::new()
-                .allowed_methods(vec!["POST"])
-                .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-                .allowed_header(http::header::CONTENT_TYPE)
-                .max_age(3600)
-                .finish(),
-        )
         .service(web::resource("/save/{uuid}").route(web::post().to(send_save::<S, L>)))
         .service(web::resource("/display/{uuid}").route(web::post().to(update_display::<S, L>)))
 }
@@ -135,21 +125,9 @@ pub fn internal_send_app<S: Saver + Send + Sync + 'static, L: Loader + Send + Sy
 pub fn send_app<S: Saver + Send + Sync + 'static, L: Loader + Send + Sync + 'static>(
     middleware: ScopeAndUserAuth,
 ) -> impl HttpServiceFactory {
-    web::scope("/send")
-        .wrap(
-            Cors::new()
-                .allowed_methods(vec!["POST"])
-                .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-                .allowed_header(http::header::CONTENT_TYPE)
-                .max_age(3600)
-                .finish(),
-        )
-        .service(
-            web::resource("/intermediate")
-                .wrap(middleware)
-                .route(web::post().to(send_intermediate::<S>)),
-        )
-        // TODO: remove after migration and move scope middleware to main
-        .service(web::resource("/save/{uuid}").route(web::post().to(send_save::<S, L>)))
-        .service(web::resource("/display/{uuid}").route(web::post().to(update_display::<S, L>)))
+    web::scope("/send").service(
+        web::resource("/intermediate")
+            .wrap(middleware)
+            .route(web::post().to(send_intermediate::<S>)),
+    )
 }
