@@ -2,3 +2,11 @@ name: dino-park-fossil
 rev: latest
 aws_region: us-west-2
 retrieve_by_id_path: /avatar/get/id/
+
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
+    cpu: 500m
