@@ -35,7 +35,7 @@ resource "aws_codebuild_project" "build" {
     # Choose type "NO_SOURCE" to don't build from Github
     type      = "GITHUB"
     location  = var.github_repo
-    buildspec = var.buildspec_file
+    #buildspec = var.buildspec_file
   }
 
   tags = {
@@ -125,11 +125,7 @@ POLICY
 #---
 
 resource "aws_ecr_repository" "registry" {
-<<<<<<< HEAD
-  name  = "${var.project_name}"
-=======
   name = var.project_name
->>>>>>> 3c14c20... Terraform 0.12 syntax
 }
 
 resource "aws_ecr_repository_policy" "registrypolicy" {
