@@ -1,8 +1,9 @@
 name: dino-park-fossil
 rev: latest
 aws_region: us-west-2
-retrieve_by_id_path: /avatar/get/id/
-
+settings:
+  auth: https://auth.mozilla.auth0.com/
+  avatar__retrieve_by_id_path: /avatar/get/id/
 resources:
   requests:
     memory: 128Mi

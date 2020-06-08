@@ -1,7 +1,5 @@
-use base64;
 use chrono::Utc;
 use failure::Error;
-use sha2;
 use sha2::Digest;
 use std::fmt;
 

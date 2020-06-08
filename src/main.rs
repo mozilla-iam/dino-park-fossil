@@ -47,9 +47,7 @@ async fn main() -> std::io::Result<()> {
     let loader = Data::new(S3Loader {
         s3_client: s3_client.clone(),
     });
-    let provider = Provider::from_issuer("https://auth.mozilla.auth0.com/")
-        .await
-        .map_err(map_io_err)?;
+    let provider = Provider::from_issuer(&s.auth).await.map_err(map_io_err)?;
 
     let time_to_live = ::std::time::Duration::from_secs(60 * 60 * 24);
     let cache = Data::new(RwLock::new(
