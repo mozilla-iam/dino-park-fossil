@@ -37,6 +37,34 @@ pub async fn delete(name: &str, bucket: &str, saver: &Arc<impl Saver>) -> Result
     Ok(())
 }
 
+pub async fn delete_many(
+    names: &[String],
+    bucket: &str,
+    saver: &Arc<impl Saver>,
+) -> Result<(), Error> {
+    future::try_join5(
+        saver.delete_many(names, RAW, bucket).map(|r| match r {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                warn!("unable to delte RAW picture: {}", e);
+                Ok::<_, Error>(())
+            }
+        }),
+        saver.delete_many(names, XLARGE, bucket).map(|r| match r {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                warn!("unable to delte XLARGE picture: {}", e);
+                Ok::<_, Error>(())
+            }
+        }),
+        saver.delete_many(names, LARGE, bucket),
+        saver.delete_many(names, MEDIUM, bucket),
+        saver.delete_many(names, SMALL, bucket),
+    )
+    .await?;
+    Ok(())
+}
+
 pub async fn save(
     avatars: Avatars,
     name: &str,

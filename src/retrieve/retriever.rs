@@ -87,7 +87,7 @@ mod test {
     #[tokio::test]
     async fn test_264_retrieved_when_528_fails() -> Result<(), Error> {
         let uuid = "9e697947-2990-4182-b080-533c16af4799";
-        let display = "public";
+        let display = &Display::Public;
 
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),
@@ -113,7 +113,7 @@ mod test {
     #[tokio::test]
     async fn test_528_retrieved_when_available() -> Result<(), Error> {
         let uuid = "9e697947-2990-4182-b080-533c16af4799";
-        let display = "public";
+        let display = &Display::Public;
 
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),
@@ -139,7 +139,7 @@ mod test {
     async fn test_own_fails_for_wrong_uuid() -> Result<(), Error> {
         let uuid = "9e697947-2990-4182-b080-533c16af4799";
         let wrong_uuid = "9e697947-2990-4182-b080-533c16af4790";
-        let display = "staff";
+        let display = &Display::Staff;
 
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),
@@ -173,7 +173,7 @@ mod test {
     #[tokio::test]
     async fn test_own_works() -> Result<(), Error> {
         let uuid = "9e697947-2990-4182-b080-533c16af4799";
-        let display = "staff";
+        let display = &Display::Staff;
 
         let settings = AvatarSettings {
             s3_bucket: String::from("testing"),

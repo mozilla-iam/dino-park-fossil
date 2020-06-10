@@ -1,6 +1,7 @@
 use crate::error::ApiError;
 use crate::send::sender::change_display_level;
 use crate::send::sender::check_resize_store_intermediate;
+use crate::send::sender::delete_avatar;
 use crate::send::sender::store_intermediate;
 use crate::send::sender::PictureUrl;
 use crate::settings::AvatarSettings;
@@ -13,6 +14,7 @@ use actix_web::web::Bytes;
 use actix_web::web::Data;
 use actix_web::web::Json;
 use actix_web::web::Path;
+use cis_profile::schema::Display;
 use dino_park_gate::scope::ScopeAndUserAuth;
 use dino_park_guard::guard;
 use futures::StreamExt;
@@ -28,20 +30,20 @@ struct Uuid {
 #[derive(Deserialize)]
 pub struct Save {
     pub intermediate: String,
-    pub display: String,
+    pub display: Display,
     pub old_url: Option<String>,
 }
 
 #[derive(Deserialize)]
 pub struct Avatar {
     pub data_uri: String,
-    pub display: String,
+    pub display: Display,
     pub old_url: Option<String>,
 }
 
 #[derive(Deserialize)]
 pub struct ChangeDisplay {
-    pub display: String,
+    pub display: Display,
     pub old_url: String,
 }
 
@@ -94,6 +96,17 @@ async fn send_save<S: Saver, L: Loader>(
     }
 }
 
+async fn delete<S: Saver, L: Loader>(
+    avatar_settings: Data<AvatarSettings>,
+    saver: Data<S>,
+    path: Path<Uuid>,
+) -> Result<Json<String>, ApiError> {
+    match delete_avatar(&avatar_settings, &saver.into_inner(), &path.uuid).await {
+        Ok(_) => Ok(Json(String::default())),
+        Err(e) => Err(ApiError::GenericBadRequest(e)),
+    }
+}
+
 async fn update_display<S: Saver, L: Loader>(
     avatar_settings: Data<AvatarSettings>,
     loader: Data<L>,
@@ -118,6 +131,7 @@ async fn update_display<S: Saver, L: Loader>(
 pub fn internal_send_app<S: Saver + Send + Sync + 'static, L: Loader + Send + Sync + 'static>(
 ) -> impl HttpServiceFactory {
     web::scope("/internal")
+        .service(web::resource("/delete/{uuid}").route(web::delete().to(delete::<S, L>)))
         .service(web::resource("/save/{uuid}").route(web::post().to(send_save::<S, L>)))
         .service(web::resource("/display/{uuid}").route(web::post().to(update_display::<S, L>)))
 }

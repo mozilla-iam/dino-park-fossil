@@ -1,13 +1,16 @@
 use crate::send::app::ChangeDisplay;
 use crate::send::app::Save;
 use crate::send::operations::delete;
+use crate::send::operations::delete_many;
 use crate::send::operations::rename;
 use crate::send::operations::save;
 use crate::send::resize::Avatars;
 use crate::settings::AvatarSettings;
 use crate::storage::loader::Loader;
 use crate::storage::name::ExternalFileName;
+use crate::storage::name::InternalFileName;
 use crate::storage::saver::Saver;
+use cis_profile::schema::Display;
 use failure::Error;
 use log::info;
 use log::warn;
@@ -23,6 +26,25 @@ pub enum SaveError {
 #[derive(Serialize)]
 pub struct PictureUrl {
     pub url: String,
+}
+
+pub async fn delete_avatar(
+    settings: &AvatarSettings,
+    saver: &Arc<impl Saver>,
+    uuid: &str,
+) -> Result<(), Error> {
+    info!("deleting avatar for {}", uuid);
+    let internal_file_names = vec![
+        InternalFileName::from_uuid_and_display(uuid, &Display::Public).to_string(),
+        InternalFileName::from_uuid_and_display(uuid, &Display::Authenticated).to_string(),
+        InternalFileName::from_uuid_and_display(uuid, &Display::Vouched).to_string(),
+        InternalFileName::from_uuid_and_display(uuid, &Display::Ndaed).to_string(),
+        InternalFileName::from_uuid_and_display(uuid, &Display::Staff).to_string(),
+        InternalFileName::from_uuid_and_display(uuid, &Display::Private).to_string(),
+    ];
+    delete_many(&internal_file_names, &settings.s3_bucket, saver).await?;
+
+    Ok(())
 }
 
 pub async fn change_display_level(
@@ -75,7 +97,7 @@ async fn check_resize_store(
     saver: Arc<impl Saver>,
     uuid: &str,
     buf: Vec<u8>,
-    display: &str,
+    display: &Display,
     old_url: &Option<String>,
 ) -> Result<PictureUrl, Error> {
     info!("uploading image for {}", uuid);
@@ -138,6 +160,13 @@ mod test {
             };
             Box::pin(async move { ret })
         }
+        fn delete_many(&self, _: &[String], _: &str, _: &str) -> BoxFuture<Result<(), Error>> {
+            let ret = match self.delete {
+                true => Ok(()),
+                false => Err(format_err!("doom")),
+            };
+            Box::pin(async move { ret })
+        }
         fn save_tmp(&self, _: &str, _: Vec<u8>) -> BoxFuture<Result<String, Error>> {
             Box::pin(async { Ok(String::from("936DA01F9ABD4d9d80C702AF85C822A8")) })
         }
@@ -156,7 +185,15 @@ mod test {
             save: true,
         });
         let uuid = "9e697947-2990-4182-b080-533c16af4799";
-        check_resize_store(&settings, saver, uuid, data.to_vec(), "private", &None).await?;
+        check_resize_store(
+            &settings,
+            saver,
+            uuid,
+            data.to_vec(),
+            &Display::Private,
+            &None,
+        )
+        .await?;
         Ok(())
     }
 
@@ -175,7 +212,15 @@ mod test {
         let uuid = "9e697947-2990-4182-b080-533c16af4799";
         let old_url = Some(String::from(
                 "MmU5ODFiODZkNWY3N2Y1NDY2ZWM1NmUyYjQwM2RlYWUyOTI3MGYwMDllOGFmZGE1ODNjZjEyNzQ3YjQ0NzQyNiNzdGFmZiMxNTU0MDQ1OTgz.png"));
-        check_resize_store(&settings, saver, uuid, data.to_vec(), "private", &old_url).await?;
+        check_resize_store(
+            &settings,
+            saver,
+            uuid,
+            data.to_vec(),
+            &Display::Private,
+            &old_url,
+        )
+        .await?;
         Ok(())
     }
 }
