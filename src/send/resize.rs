@@ -42,7 +42,7 @@ impl Avatars {
 
     /// Returns png chunks that needs to be copied to keep color information
     /// related things intact (i.e. copy chunks that the image crate does not pick up)
-    fn maybe_extract_png_color_metadata(buf: &Vec<u8>) -> Result<Vec<u8>, Error> {
+    fn maybe_extract_png_color_metadata(buf: &[u8]) -> Result<Vec<u8>, Error> {
         let mut metadata_to_add = Vec::new();
 
         let mut png_decoder = lodepng::Decoder::new();
@@ -52,7 +52,7 @@ impl Avatars {
 
         let mut added_chunks = Vec::new();
 
-        for chunk_to_copy in vec!["cHRM", "gAMA", "sRGB", "iCCP", "eXIf"] {
+        for chunk_to_copy in &["cHRM", "gAMA", "sRGB", "iCCP", "eXIf"] {
             if let Some(data_chunk) = png_decoder.info_png().get(chunk_to_copy) {
                 // chunk_length = padding (2 bytes) chunk_len (4 bytes) + chunk type (4 bytes) + data_len + crc (8 bytes) = data_len + 18
                 metadata_to_add.reserve(data_chunk.len() + 18);
@@ -82,7 +82,7 @@ impl Avatars {
     }
 }
 
-fn downsize(size: u32, img: &DynamicImage, metadata_to_add: &Vec<u8>) -> Result<Vec<u8>, Error> {
+fn downsize(size: u32, img: &DynamicImage, metadata_to_add: &[u8]) -> Result<Vec<u8>, Error> {
     let down_sized = img.resize_to_fill(size, size, FilterType::Lanczos3);
     let mut buf: Vec<u8> = Vec::new();
     down_sized.write_to(&mut buf, image::ImageOutputFormat::Png)?;
