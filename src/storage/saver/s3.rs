@@ -1,3 +1,4 @@
+use super::Saver;
 use chrono::Duration;
 use chrono::Utc;
 use failure::Error;
@@ -9,34 +10,17 @@ use rusoto_s3::DeleteObjectRequest;
 use rusoto_s3::DeleteObjectsRequest;
 use rusoto_s3::ObjectIdentifier;
 use rusoto_s3::PutObjectRequest;
+use rusoto_s3::S3Client;
 use rusoto_s3::S3;
 use std::ops::Add;
 use uuid::Uuid;
 
-pub trait Saver {
-    fn save(
-        &self,
-        name: &str,
-        prefix: &str,
-        bucket: &str,
-        buf: Vec<u8>,
-    ) -> BoxFuture<Result<(), Error>>;
-    fn delete(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<(), Error>>;
-    fn delete_many(
-        &self,
-        names: &[String],
-        prefix: &str,
-        bucket: &str,
-    ) -> BoxFuture<Result<(), Error>>;
-    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> BoxFuture<Result<String, Error>>;
-}
-
 #[derive(Clone)]
-pub struct S3Saver<S: S3 + Send + Sync> {
-    pub s3_client: S,
+pub struct S3Saver {
+    pub s3_client: S3Client,
 }
 
-impl<S: S3 + Send + Sync> Saver for S3Saver<S> {
+impl Saver for S3Saver {
     fn save(
         &self,
         name: &str,
