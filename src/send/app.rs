@@ -96,7 +96,7 @@ async fn send_save<S: Saver, L: Loader>(
     }
 }
 
-async fn delete<S: Saver, L: Loader>(
+async fn delete<S: Saver>(
     avatar_settings: Data<AvatarSettings>,
     saver: Data<S>,
     path: Path<Uuid>,
@@ -131,7 +131,7 @@ async fn update_display<S: Saver, L: Loader>(
 pub fn internal_send_app<S: Saver + Send + Sync + 'static, L: Loader + Send + Sync + 'static>(
 ) -> impl HttpServiceFactory {
     web::scope("/internal")
-        .service(web::resource("/delete/{uuid}").route(web::delete().to(delete::<S, L>)))
+        .service(web::resource("/delete/{uuid}").route(web::delete().to(delete::<S>)))
         .service(web::resource("/save/{uuid}").route(web::post().to(send_save::<S, L>)))
         .service(web::resource("/display/{uuid}").route(web::post().to(update_display::<S, L>)))
 }
