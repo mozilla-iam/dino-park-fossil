@@ -8,8 +8,6 @@ mod send;
 mod settings;
 mod storage;
 
-use crate::storage::loader::S3Loader;
-use crate::storage::saver::S3Saver;
 use actix_web::middleware::Logger;
 use actix_web::web;
 use actix_web::web::Data;
@@ -21,7 +19,6 @@ use dino_park_gate::scope::ScopeAndUserAuth;
 use log::info;
 use lru_time_cache::LruCache;
 use retrieve::app::retrieve_app;
-use rusoto_s3::S3Client;
 use send::app::internal_send_app;
 use send::app::send_app;
 use std::io::Error;
@@ -40,13 +37,6 @@ async fn main() -> std::io::Result<()> {
     let s = settings::Settings::new().map_err(map_io_err)?;
     let cis_client = Data::new(CisClient::from_settings(&s.cis).await.map_err(map_io_err)?);
     let avatar_settings = Data::new(s.avatar.clone());
-    let s3_client = S3Client::new(rusoto_core::Region::default());
-    let saver = Data::new(S3Saver {
-        s3_client: s3_client.clone(),
-    });
-    let loader = Data::new(S3Loader {
-        s3_client: s3_client.clone(),
-    });
     let provider = Provider::from_issuer(&s.auth).await.map_err(map_io_err)?;
 
     let time_to_live = ::std::time::Duration::from_secs(60 * 60 * 24);
@@ -56,24 +46,73 @@ async fn main() -> std::io::Result<()> {
     // Start http server
     HttpServer::new(move || {
         let scope_middleware = ScopeAndUserAuth::new(provider.clone()).public();
-        App::new()
-            .wrap(Logger::default().exclude("/healthz"))
-            .app_data(loader.clone())
-            .app_data(cache.clone())
-            .app_data(saver.clone())
-            .app_data(cis_client.clone())
-            .app_data(avatar_settings.clone())
-            .service(
-                web::scope("/avatar")
-                    .service(retrieve_app::<CisClient, S3Loader<S3Client>>(
-                        scope_middleware.clone(),
-                    ))
-                    .service(send_app::<S3Saver<S3Client>, S3Loader<S3Client>>(
-                        scope_middleware,
-                    )),
-            )
-            .service(internal_send_app::<S3Saver<S3Client>, S3Loader<S3Client>>())
-            .service(healthz::healthz_app())
+
+        #[cfg(feature = "local-fs")]
+        {
+            use crate::storage::loader::filesystem::FilesystemLoader;
+            use crate::storage::saver::filesystem::FilesystemSaver;
+            use std::path::PathBuf;
+            use std::sync::Arc;
+
+            let mut path = PathBuf::new();
+            path.push("./files");
+
+            let saver = Data::new(FilesystemSaver {
+                path: Arc::new(path.clone()),
+            });
+            let loader = Data::new(FilesystemLoader {
+                path: Arc::new(path.clone()),
+            });
+
+            App::new()
+                .wrap(Logger::default().exclude("/healthz"))
+                .app_data(loader.clone())
+                .app_data(cache.clone())
+                .app_data(saver.clone())
+                .app_data(cis_client.clone())
+                .app_data(avatar_settings.clone())
+                .service(
+                    web::scope("/avatar")
+                        .service(retrieve_app::<CisClient, FilesystemLoader>(
+                            scope_middleware.clone(),
+                        ))
+                        .service(send_app::<FilesystemSaver, FilesystemLoader>(
+                            scope_middleware,
+                        )),
+                )
+                .service(internal_send_app::<FilesystemSaver, FilesystemLoader>())
+                .service(healthz::healthz_app())
+        }
+
+        #[cfg(not(feature = "local-fs"))]
+        {
+            use crate::storage::loader::s3::S3Loader;
+            use crate::storage::saver::s3::S3Saver;
+            use rusoto_s3::S3Client;
+
+            let s3_client = S3Client::new(rusoto_core::Region::default());
+            let saver = Data::new(S3Saver {
+                s3_client: s3_client.clone(),
+            });
+            let loader = Data::new(S3Loader { s3_client });
+
+            App::new()
+                .wrap(Logger::default().exclude("/healthz"))
+                .app_data(loader)
+                .app_data(cache.clone())
+                .app_data(saver)
+                .app_data(cis_client.clone())
+                .app_data(avatar_settings.clone())
+                .service(
+                    web::scope("/avatar")
+                        .service(retrieve_app::<CisClient, S3Loader>(
+                            scope_middleware.clone(),
+                        ))
+                        .service(send_app::<S3Saver, S3Loader>(scope_middleware)),
+                )
+                .service(internal_send_app::<S3Saver, S3Loader>())
+                .service(healthz::healthz_app())
+        }
     })
     .bind("0.0.0.0:8083")?
     .run()

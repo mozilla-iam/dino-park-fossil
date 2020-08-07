@@ -1,9 +1,11 @@
+use super::Loader;
 use bytes::BytesMut;
 use failure::Error;
 use futures::future::BoxFuture;
 use futures::stream::TryStreamExt;
 use log::info;
 use rusoto_s3::GetObjectRequest;
+use rusoto_s3::S3Client;
 use rusoto_s3::S3;
 
 #[derive(Debug, Fail)]
@@ -12,16 +14,12 @@ pub enum S3Error {
     NoBody,
 }
 
-pub trait Loader {
-    fn load(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<Vec<u8>, Error>>;
-}
-
 #[derive(Clone)]
-pub struct S3Loader<S: S3 + Send + Sync> {
-    pub s3_client: S,
+pub struct S3Loader {
+    pub s3_client: S3Client,
 }
 
-impl<S: S3 + Send + Sync> Loader for S3Loader<S> {
+impl Loader for S3Loader {
     fn load(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<Vec<u8>, Error>> {
         let download = GetObjectRequest {
             bucket: bucket.to_owned(),
