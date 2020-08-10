@@ -5,12 +5,12 @@ use log::info;
 use log::warn;
 use lru_time_cache::LruCache;
 use std::sync::Arc;
-use std::sync::RwLock;
+use std::sync::Mutex;
 
 pub async fn get_uuid<T: AsyncCisClientTrait>(
     user_id: &str,
     cis_client: &T,
-    cache: &Arc<RwLock<LruCache<String, String>>>,
+    cache: &Arc<Mutex<LruCache<String, String>>>,
     own: bool,
 ) -> Result<Option<String>, Error> {
     if !own {
@@ -20,7 +20,7 @@ pub async fn get_uuid<T: AsyncCisClientTrait>(
     let cache_f = Arc::clone(cache);
 
     if let Some(Some(uuid)) = cache
-        .write()
+        .try_lock()
         .ok()
         .map(|mut c| c.get(user_id).map(Clone::clone))
     {
@@ -32,7 +32,7 @@ pub async fn get_uuid<T: AsyncCisClientTrait>(
         if let Some(uuid) = p.uuid.value {
             let msg = format!("updated cache for {}", &user_id_f);
             cache_f
-                .write()
+                .try_lock()
                 .ok()
                 .map(|mut c| c.insert(user_id_f, uuid.clone()));
             info!("{}", msg);

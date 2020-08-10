@@ -19,7 +19,7 @@ use dino_park_gate::scope::ScopeAndUserAuth;
 use dino_park_trust::Trust;
 use lru_time_cache::LruCache;
 use serde::Deserialize;
-use std::sync::RwLock;
+use std::sync::Mutex;
 
 #[derive(Deserialize)]
 struct Picture {
@@ -45,7 +45,7 @@ async fn retrieve_avatar<T: AsyncCisClientTrait + Clone, L: Loader>(
     query: Query<PictureQuery>,
     scope_and_user: ScopeAndUser,
     cis_client: Data<T>,
-    cache: Data<RwLock<LruCache<String, String>>>,
+    cache: Data<Mutex<LruCache<String, String>>>,
 ) -> Result<HttpResponse, Error> {
     let uuid = if scope_and_user.scope != Trust::Public {
         let cis_client = cis_client.into_inner();

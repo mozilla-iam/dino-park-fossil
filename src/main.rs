@@ -23,7 +23,7 @@ use send::app::internal_send_app;
 use send::app::send_app;
 use std::io::Error;
 use std::io::ErrorKind;
-use std::sync::RwLock;
+use std::sync::Mutex;
 
 fn map_io_err(e: impl Into<failure::Error>) -> Error {
     Error::new(ErrorKind::Other, e.into())
@@ -40,7 +40,7 @@ async fn main() -> std::io::Result<()> {
     let provider = Provider::from_issuer(&s.auth).await.map_err(map_io_err)?;
 
     let time_to_live = ::std::time::Duration::from_secs(60 * 60 * 24);
-    let cache = Data::new(RwLock::new(
+    let cache = Data::new(Mutex::new(
         LruCache::<String, String>::with_expiry_duration_and_capacity(time_to_live, 2000),
     ));
     // Start http server
