@@ -7,7 +7,7 @@ metadata:
   labels:
     app: {{ .Values.name }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
       app: {{ .Values.name }}
@@ -24,9 +24,11 @@ spec:
           imagePullPolicy: Always
           resources:
             requests:
-              memory: 128Mi
+              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.resources.requests.cpu }}
             limits:
-              memory: 512Mi
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
           ports:
             - containerPort: 8083
           readinessProbe:
@@ -37,15 +39,15 @@ spec:
             - name: FORCE_UPDATE
               value: "{{ .Values.force_update | default 0 }}"
             - name: DPF_SETTINGS
-              value: "/data/.settings.json"
+              value: "/data/.settings-{{ .Values.env }}.json"
             - name: AWS_DEFAULT_REGION
               value: "{{ .Values.aws_region | default "us-west-2" }}"
-            - name: AVATAR__S3_BUCKET
-              value: "{{ .Values.s3_bucket }}"
-            - name: AVATAR__RETRIEVE_BY_ID_PATH
-              value: "{{ .Values.retrieve_by_id_path }}"
             - name: AVATAR__PICTURE_API_URL
               value: "{{ .Values.picture_api_url }}"
+            {{- range $key, $value := .Values.settings }}
+            - name: DP_{{ $key | upper }}
+              value: "{{ $value }}"
+            {{- end }}
           volumeMounts:
             - name: settings-secrets
               mountPath: "/data"
@@ -53,4 +55,4 @@ spec:
       volumes:
         - name: settings-secrets
           secret:
-            secretName: dino-park-fossil
+            secretName: dino-park-fossil-v2

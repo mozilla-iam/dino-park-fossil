@@ -1,8 +1,8 @@
 .dev.env
-.settings.json
+.settings*.json
 secret-*.yaml
 .git/
 .vscode/
 target/
-!target/x86_64-unknown-linux-musl/release/dino-park-fossil
+!target/x86_64-unknown-linux-gnu/release/dino-park-fossil
 terraform/
