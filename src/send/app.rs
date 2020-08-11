@@ -15,7 +15,6 @@ use actix_web::web::Data;
 use actix_web::web::Json;
 use actix_web::web::Path;
 use cis_profile::schema::Display;
-use dino_park_gate::scope::ScopeAndUserAuth;
 use dino_park_guard::guard;
 use futures::StreamExt;
 use futures::TryStreamExt;
@@ -137,11 +136,7 @@ pub fn internal_send_app<S: Saver + Send + Sync + 'static, L: Loader + Send + Sy
 }
 
 pub fn send_app<S: Saver + Send + Sync + 'static, L: Loader + Send + Sync + 'static>(
-    middleware: ScopeAndUserAuth,
 ) -> impl HttpServiceFactory {
-    web::scope("/send").service(
-        web::resource("/intermediate")
-            .wrap(middleware)
-            .route(web::post().to(send_intermediate::<S>)),
-    )
+    web::scope("/send")
+        .service(web::resource("/intermediate").route(web::post().to(send_intermediate::<S>)))
 }

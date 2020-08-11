@@ -15,7 +15,6 @@ use actix_web::HttpResponse;
 use cis_client::AsyncCisClientTrait;
 use cis_profile::schema::Display;
 use dino_park_gate::scope::ScopeAndUser;
-use dino_park_gate::scope::ScopeAndUserAuth;
 use dino_park_trust::Trust;
 use lru_time_cache::LruCache;
 use serde::Deserialize;
@@ -74,10 +73,7 @@ async fn retrieve_avatar<T: AsyncCisClientTrait + Clone, L: Loader>(
 pub fn retrieve_app<
     T: AsyncCisClientTrait + Clone + Send + Sync + 'static,
     L: Loader + Send + Sync + 'static,
->(
-    middleware: ScopeAndUserAuth,
-) -> impl HttpServiceFactory {
+>() -> impl HttpServiceFactory {
     web::scope("/get")
-        .wrap(middleware)
         .service(web::resource("/id/{picture}").route(web::get().to(retrieve_avatar::<T, L>)))
 }

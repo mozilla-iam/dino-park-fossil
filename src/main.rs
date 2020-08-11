@@ -7,6 +7,8 @@ mod retrieve;
 mod send;
 mod settings;
 mod storage;
+#[cfg(test)]
+mod tests;
 
 use actix_web::middleware::Logger;
 use actix_web::web;
@@ -73,12 +75,9 @@ async fn main() -> std::io::Result<()> {
                 .app_data(avatar_settings.clone())
                 .service(
                     web::scope("/avatar")
-                        .service(retrieve_app::<CisClient, FilesystemLoader>(
-                            scope_middleware.clone(),
-                        ))
-                        .service(send_app::<FilesystemSaver, FilesystemLoader>(
-                            scope_middleware,
-                        )),
+                        .wrap(scope_middleware)
+                        .service(retrieve_app::<CisClient, FilesystemLoader>())
+                        .service(send_app::<FilesystemSaver, FilesystemLoader>()),
                 )
                 .service(internal_send_app::<FilesystemSaver, FilesystemLoader>())
                 .service(healthz::healthz_app())
@@ -105,10 +104,9 @@ async fn main() -> std::io::Result<()> {
                 .app_data(avatar_settings.clone())
                 .service(
                     web::scope("/avatar")
-                        .service(retrieve_app::<CisClient, S3Loader>(
-                            scope_middleware.clone(),
-                        ))
-                        .service(send_app::<S3Saver, S3Loader>(scope_middleware)),
+                        .wrap(scope_middleware)
+                        .service(retrieve_app::<CisClient, S3Loader>())
+                        .service(send_app::<S3Saver, S3Loader>()),
                 )
                 .service(internal_send_app::<S3Saver, S3Loader>())
                 .service(healthz::healthz_app())

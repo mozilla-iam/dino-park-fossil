@@ -37,9 +37,9 @@ base64 = "0.12"
 sha2 = "0.8"
 uuid = { version = "0.8", features = ["v4"] }
 lru_time_cache = "0.10.0"
+async-std = { version = "1.6", optional = true }
 lodepng = "3"
 byteorder = "1"
-async-std = { version = "1.6", optional = true }
 
 [dev-dependencies]
 tokio = "0.2"
