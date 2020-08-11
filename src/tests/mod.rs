@@ -84,7 +84,6 @@ async fn healthz_check_returns_success() -> Result<(), Error> {
 }
 
 #[actix_rt::test]
-#[cfg(feature = "localuserscope")]
 async fn avatar_test() -> Result<(), Error> {
     env::set_var(
         "RUST_LOG",
