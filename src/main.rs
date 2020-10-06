@@ -63,14 +63,14 @@ async fn main() -> std::io::Result<()> {
                 path: Arc::new(path.clone()),
             });
             let loader = Data::new(FilesystemLoader {
-                path: Arc::new(path.clone()),
+                path: Arc::new(path),
             });
 
             App::new()
                 .wrap(Logger::default().exclude("/healthz"))
-                .app_data(loader.clone())
+                .app_data(loader)
                 .app_data(cache.clone())
-                .app_data(saver.clone())
+                .app_data(saver)
                 .app_data(cis_client.clone())
                 .app_data(avatar_settings.clone())
                 .service(
