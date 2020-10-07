@@ -16,7 +16,6 @@ dino_park_gate = { git = "https://github.com/mozilla-iam/dino-park-gate", branch
 dino_park_trust = { git = "https://github.com/mozilla-iam/dino-park-trust", tag = "0.0.7", version = "0.0.7" }
 dino_park_guard = { git = "https://github.com/mozilla-iam/dino-park-guard", branch = "0.3", version = "0.3" }
 actix-web = "3"
-actix-cors = "0.3"
 actix-multipart = "0.3"
 bytes = "0.5"
 futures = "0.3"
@@ -32,7 +31,7 @@ rusoto_s3 = { version = "0.45", optional = true }
 image = "0.23"
 failure = "0.1.5"
 failure_derive = "0.1.5"
-base64 = "0.12"
+base64 = "0.13"
 sha2 = "0.9"
 uuid = { version = "0.8", features = ["v4"] }
 lru_time_cache = "0.11"
