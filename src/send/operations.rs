@@ -130,8 +130,8 @@ async fn rename_one(
     saver: &Arc<impl Saver>,
     loader: &Arc<impl Loader>,
 ) -> Result<(), Error> {
-    let buf = loader.load(old_name, &size, &bucket).await?;
-    saver.save(new_name, &size, &bucket, buf).await?;
-    saver.delete(old_name, &size, &bucket).await?;
+    let buf = loader.load(old_name, size, bucket).await?;
+    saver.save(new_name, size, bucket, buf).await?;
+    saver.delete(old_name, size, bucket).await?;
     Ok(())
 }

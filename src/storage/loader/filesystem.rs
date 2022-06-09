@@ -16,7 +16,7 @@ impl Loader for FilesystemLoader {
 
         let path = self
             .path
-            .join(bucket.to_string())
+            .join(bucket)
             .join(format!("{}-{}", prefix, name));
 
         Box::pin(async move { Ok(fs::read(path).await?) })

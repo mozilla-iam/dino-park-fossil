@@ -72,13 +72,13 @@ impl ExternalFileName {
         let decoded = base64::decode_config(encoded, base64::URL_SAFE_NO_PAD)?;
         let s = String::from_utf8(decoded).map_err(|_| NameError::InvalidUtf8)?;
         let mut parts = s.split('#').take(3).map(String::from);
-        let uuid_hash = parts.next().ok_or_else(|| NameError::InvalidName)?;
+        let uuid_hash = parts.next().ok_or(NameError::InvalidName)?;
         let display = parts
             .next()
-            .ok_or_else(|| NameError::InvalidName)?
+            .ok_or(NameError::InvalidName)?
             .as_str()
             .try_into()?;
-        let ts = parts.next().ok_or_else(|| NameError::InvalidName)?;
+        let ts = parts.next().ok_or(NameError::InvalidName)?;
         Ok(ExternalFileName {
             internal: InternalFileName { uuid_hash, display },
             ts: ts.parse()?,

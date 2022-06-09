@@ -34,7 +34,7 @@ pub async fn retrieve_avatar_from_store(
         _ => scope,
     };
     if let Some(scope) = scope {
-        if scope < Display::try_from(internal.display.as_str()).unwrap_or_else(|_| Display::Public)
+        if scope < Display::try_from(internal.display.as_str()).unwrap_or(Display::Public)
         {
             return Err(RetrieveError::NotFound.into());
         }
