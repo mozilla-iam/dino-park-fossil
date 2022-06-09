@@ -53,10 +53,7 @@ impl Saver for FilesystemSaver {
     }
 
     fn delete(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<(), Error>> {
-        let path = self
-            .path
-            .join(bucket)
-            .join(format!("{}-{}", prefix, name));
+        let path = self.path.join(bucket).join(format!("{}-{}", prefix, name));
 
         let name = name.to_owned();
         let bucket = bucket.to_owned();
@@ -84,9 +81,7 @@ impl Saver for FilesystemSaver {
         let prefix = prefix.to_owned();
         let bucket = bucket.to_owned();
 
-        let names = names
-            .iter()
-            .map(|name| self.delete(name, &prefix, &bucket));
+        let names = names.iter().map(|name| self.delete(name, &prefix, &bucket));
 
         futures::future::try_join_all(names).map_ok(|_| ()).boxed()
     }
