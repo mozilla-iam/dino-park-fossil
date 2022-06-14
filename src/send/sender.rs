@@ -89,7 +89,7 @@ pub async fn check_resize_store_intermediate(
     let buf = loader
         .load(&save.intermediate, "tmp", &settings.s3_bucket)
         .await?;
-    check_resize_store(&settings, saver, uuid, buf, &save.display, &save.old_url).await
+    check_resize_store(settings, saver, uuid, buf, &save.display, &save.old_url).await
 }
 
 async fn check_resize_store(
@@ -113,7 +113,7 @@ async fn check_resize_store(
         ),
     };
     if let Some(old_url) = old_url {
-        let old_file_name = ExternalFileName::from_uri(&old_url);
+        let old_file_name = ExternalFileName::from_uri(old_url);
         match old_file_name {
             Ok(name) => {
                 delete(&name.internal.to_string(), &settings.s3_bucket, &saver).await?;

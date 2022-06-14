@@ -24,7 +24,7 @@ impl Avatars {
         let img = image::load_from_memory_with_format(&buf, image::ImageFormat::Png)?;
         let (w, h) = img.dimensions();
         let ratio = f64::from(w) / f64::from(h);
-        if ratio < 0.95 || ratio > 1.05 {
+        if !(0.95..=1.05).contains(&ratio) {
             return Err(format_err!("wrong aspect ratio: {}", ratio));
         }
 
@@ -54,8 +54,7 @@ impl Avatars {
         let metadata_to_add = ["cHRM", "gAMA", "sRGB", "iCCP", "eXIf"]
             .iter()
             .filter_map(|chunk_to_copy| png_decoder.info_png().get(chunk_to_copy))
-            .map(Avatars::metadata)
-            .flatten()
+            .flat_map(Avatars::metadata)
             .collect();
 
         Ok(metadata_to_add)

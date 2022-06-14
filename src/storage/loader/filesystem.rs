@@ -14,10 +14,7 @@ impl Loader for FilesystemLoader {
     fn load(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<Vec<u8>, Error>> {
         info!("reading file in bucket '{}'", bucket);
 
-        let path = self
-            .path
-            .join(bucket.to_string())
-            .join(format!("{}-{}", prefix, name));
+        let path = self.path.join(bucket).join(format!("{}-{}", prefix, name));
 
         Box::pin(async move { Ok(fs::read(path).await?) })
     }
