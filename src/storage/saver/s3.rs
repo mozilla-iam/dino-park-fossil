@@ -42,7 +42,7 @@ impl Saver for S3Saver {
                 "uploaded {} to {} with version_id: {}",
                 name,
                 bucket,
-                res.version_id.as_deref().unwrap_or_else(|| "-"),
+                res.version_id.as_deref().unwrap_or("-"),
             );
             Ok(())
         })
@@ -61,7 +61,7 @@ impl Saver for S3Saver {
                 "deleted {} from {} with version_id: {}",
                 name,
                 bucket,
-                res.version_id.as_deref().unwrap_or_else(|| "-"),
+                res.version_id.as_deref().unwrap_or("-"),
             );
             Ok(())
         })
@@ -125,7 +125,7 @@ impl Saver for S3Saver {
                 "created tmp file {} in {} with version_id: {}",
                 name,
                 bucket,
-                res.version_id.as_deref().unwrap_or_else(|| "-"),
+                res.version_id.as_deref().unwrap_or("-"),
             );
             Ok(name)
         })

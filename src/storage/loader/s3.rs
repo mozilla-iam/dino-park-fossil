@@ -34,9 +34,9 @@ impl Loader for S3Loader {
                 "downloaded {} from {} with version_id: {}",
                 name,
                 bucket,
-                res.version_id.as_deref().unwrap_or_else(|| "-"),
+                res.version_id.as_deref().unwrap_or("-"),
             );
-            let stream = res.body.ok_or_else(|| S3Error::NoBody)?;
+            let stream = res.body.ok_or(S3Error::NoBody)?;
             let body = stream
                 .map_ok(|b| BytesMut::from(&b[..]))
                 .try_concat()
