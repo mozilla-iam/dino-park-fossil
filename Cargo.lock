@@ -996,7 +996,7 @@ dependencies = [
 
 [[package]]
 name = "dino-park-fossil"
-version = "0.1.3"
+version = "0.1.5"
 dependencies = [
  "actix-multipart",
  "actix-rt",
