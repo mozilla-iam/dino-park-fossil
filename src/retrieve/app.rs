@@ -48,7 +48,7 @@ async fn retrieve_avatar<T: AsyncCisClientTrait + Clone, L: Loader>(
 ) -> Result<HttpResponse, Error> {
     let uuid = if scope_and_user.scope != Trust::Public {
         let cis_client = cis_client.into_inner();
-        get_uuid(&scope_and_user.user_id, &*cis_client, &*cache, query.own)
+        get_uuid(&scope_and_user.user_id, &*cis_client, &cache, query.own)
             .await
             .map_err(error::ErrorNotFound)?
     } else {
