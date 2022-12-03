@@ -49,7 +49,7 @@ impl Avatars {
         let mut png_decoder = lodepng::Decoder::new();
         // required so the chunks are remembered (by default, it only remembers the mandatory chunks)
         png_decoder.remember_unknown_chunks(true);
-        png_decoder.decode(&buf)?;
+        png_decoder.decode(buf)?;
 
         let metadata_to_add = ["cHRM", "gAMA", "sRGB", "iCCP", "eXIf"]
             .iter()
@@ -65,11 +65,11 @@ impl Avatars {
         let mut metadata_to_add = Vec::with_capacity(data_chunk.len() + 18);
 
         // write two bytes of padding
-        metadata_to_add.extend(&[0x00, 0x00]);
+        metadata_to_add.extend([0x00, 0x00]);
         metadata_to_add
             .write_u16::<byteorder::BE>(data_chunk.len() as u16)
             .unwrap();
-        metadata_to_add.extend(&data_chunk.name());
+        metadata_to_add.extend(data_chunk.name());
         metadata_to_add.extend(data_chunk.data());
 
         metadata_to_add
