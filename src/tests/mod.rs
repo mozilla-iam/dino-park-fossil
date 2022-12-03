@@ -231,7 +231,7 @@ async fn avatar_test() -> Result<(), Error> {
                 .expect("returned image does not have a iccp chunk anymore!");
 
             // validate that the data is consistent across all images
-            if iccp_crc == None {
+            if iccp_crc.is_none() {
                 iccp_crc = Some(iccp_chunk.crc());
             } else {
                 assert_eq!(iccp_crc.unwrap(), iccp_chunk.crc());
