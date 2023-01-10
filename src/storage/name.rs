@@ -87,7 +87,7 @@ impl ExternalFileName {
 
     pub fn encode(&self) -> String {
         base64::encode_config(
-            &format!(
+            format!(
                 "{}#{}#{}",
                 &self.internal.uuid_hash,
                 &self.internal.display.as_str(),
