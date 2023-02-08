@@ -27,7 +27,7 @@ impl Saver for FilesystemSaver {
         let path = self.path.clone().join(bucket);
         info!("saving permanent file in {}", path.display());
 
-        let file_name = format!("{}-{}", prefix, name);
+        let file_name = format!("{prefix}-{name}");
 
         Box::pin(async move {
             match fs::create_dir_all(path.clone()).await {
@@ -53,7 +53,7 @@ impl Saver for FilesystemSaver {
     }
 
     fn delete(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<(), Error>> {
-        let path = self.path.join(bucket).join(format!("{}-{}", prefix, name));
+        let path = self.path.join(bucket).join(format!("{prefix}-{name}"));
 
         let name = name.to_owned();
         let bucket = bucket.to_owned();
@@ -92,7 +92,7 @@ impl Saver for FilesystemSaver {
         let path = self.path.join(bucket);
 
         let file_uuid = Uuid::new_v4().to_simple().to_string();
-        let file_name = format!("tmp-{}", file_uuid);
+        let file_name = format!("tmp-{file_uuid}");
 
         Box::pin(async move {
             match fs::create_dir_all(path.clone()).await {
@@ -176,7 +176,7 @@ mod tests {
 
         let delete_result = saver.delete("hello.txt", "pre", BUCKET).await;
 
-        eprintln!("{:?}", delete_result);
+        eprintln!("{delete_result:?}");
         // make sure that the file was successfully deleted
         assert!(delete_result.is_ok());
 
@@ -220,7 +220,7 @@ mod tests {
             std::fs::write(
                 std::env::temp_dir()
                     .join(BUCKET)
-                    .join(format!("{}-{}", PREFIX, name)),
+                    .join(format!("{PREFIX}-{name}")),
                 content,
             )
             .unwrap();
@@ -238,7 +238,7 @@ mod tests {
             )
             .await;
 
-        eprintln!("{:?}", delete_result);
+        eprintln!("{delete_result:?}");
         assert!(delete_result.is_ok());
 
         // make sure all the files were deleted
@@ -246,7 +246,7 @@ mod tests {
             let metadata_result = std::fs::metadata(
                 std::env::temp_dir()
                     .join(BUCKET)
-                    .join(format!("{}-{}", PREFIX, name)),
+                    .join(format!("{PREFIX}-{name}")),
             );
 
             assert!(metadata_result.is_err());

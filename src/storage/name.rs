@@ -110,7 +110,7 @@ mod test {
         let uuid = "9e697947-2990-4182-b080-533c16af4799";
         let display = &Display::Staff;
         let name = ExternalFileName::from_uuid_and_display(uuid, display).filename();
-        println!("{}", name);
+        println!("{name}");
         let external_file_name = ExternalFileName::from_uri(&name)?;
         assert_eq!(
             external_file_name.internal.uuid_hash,
