@@ -40,5 +40,5 @@ lodepng = "3"
 byteorder = "1"
 
 [dev-dependencies]
-tokio = "0.2"
-actix-rt = "1"
+tokio = "1"
+actix-rt = "2.10.0"
