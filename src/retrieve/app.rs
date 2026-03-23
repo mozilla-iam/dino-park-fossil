@@ -2,10 +2,9 @@ use crate::retrieve::retriever::retrieve_avatar_from_store;
 use crate::retrieve::uuid::get_uuid;
 use crate::settings::AvatarSettings;
 use crate::storage::loader::Loader;
-use actix_web::dev::BodyEncoding;
 use actix_web::dev::HttpServiceFactory;
 use actix_web::error;
-use actix_web::http::ContentEncoding;
+use actix_web::http::header::{ContentEncoding, ContentType};
 use actix_web::web;
 use actix_web::web::Data;
 use actix_web::web::Path;
@@ -65,8 +64,8 @@ async fn retrieve_avatar<T: AsyncCisClientTrait + Clone, L: Loader>(
     .await
     .map_err(error::ErrorNotFound)?;
     Ok(HttpResponse::Ok()
-        .encoding(ContentEncoding::Identity)
-        .header("content-type", "image/png")
+        .insert_header(ContentEncoding::Identity)
+        .insert_header(ContentType::png())
         .body(b))
 }
 
