@@ -1,3 +1,8 @@
+// DEBT: Quoting the lint:
+//     non-local `impl` definition, `impl` blocks should be written at the same
+//     level as their item
+#![allow(non_local_definitions)]
+
 use crate::settings::AvatarSettings;
 use crate::storage::loader::Loader;
 use crate::storage::name::uuid_hash;

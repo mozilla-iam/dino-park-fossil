@@ -27,7 +27,7 @@ impl Saver for S3Saver {
         prefix: &str,
         bucket: &str,
         buf: Vec<u8>,
-    ) -> BoxFuture<Result<(), Error>> {
+    ) -> BoxFuture<'_, Result<(), Error>> {
         let put = PutObjectRequest {
             bucket: bucket.to_owned(),
             key: format!("{}/{}", prefix, name),
@@ -47,7 +47,7 @@ impl Saver for S3Saver {
             Ok(())
         })
     }
-    fn delete(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<(), Error>> {
+    fn delete(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<'_, Result<(), Error>> {
         let delete = DeleteObjectRequest {
             bucket: bucket.to_owned(),
             key: format!("{}/{}", prefix, name),
@@ -71,7 +71,7 @@ impl Saver for S3Saver {
         names: &[String],
         prefix: &str,
         bucket: &str,
-    ) -> BoxFuture<Result<(), Error>> {
+    ) -> BoxFuture<'_, Result<(), Error>> {
         let delete = Delete {
             objects: names
                 .iter()
@@ -109,7 +109,7 @@ impl Saver for S3Saver {
             Ok(())
         })
     }
-    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> BoxFuture<Result<String, Error>> {
+    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> BoxFuture<'_, Result<String, Error>> {
         let name = Uuid::new_v4().to_simple().to_string();
         let put = PutObjectRequest {
             bucket: bucket.to_owned(),
