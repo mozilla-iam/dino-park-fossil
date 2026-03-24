@@ -19,11 +19,7 @@ pub async fn get_uuid<T: AsyncCisClientTrait>(
     let user_id_f = user_id.to_owned();
     let cache_f = Arc::clone(cache);
 
-    if let Some(Some(uuid)) = cache
-        .try_lock()
-        .ok()
-        .map(|mut c| c.get(user_id).map(Clone::clone))
-    {
+    if let Some(Some(uuid)) = cache.try_lock().ok().map(|mut c| c.get(user_id).cloned()) {
         Ok(Some(uuid))
     } else {
         let p = cis_client
