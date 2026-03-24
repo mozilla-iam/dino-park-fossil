@@ -24,11 +24,10 @@ use retrieve::app::retrieve_app;
 use send::app::internal_send_app;
 use send::app::send_app;
 use std::io::Error;
-use std::io::ErrorKind;
 use std::sync::Mutex;
 
 fn map_io_err(e: impl Into<failure::Error>) -> Error {
-    Error::new(ErrorKind::Other, e.into())
+    Error::other(e.into())
 }
 
 #[actix_web::main]

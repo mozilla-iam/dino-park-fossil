@@ -4,16 +4,15 @@ use crate::send::app::send_app;
 use crate::settings::AvatarSettings;
 use crate::storage::loader::filesystem::FilesystemLoader;
 use crate::storage::saver::filesystem::FilesystemSaver;
-use actix_web::dev::Body;
-use actix_web::dev::ResponseBody;
+use actix_web::body::MessageBody;
 use actix_web::dev::Service;
 use actix_web::middleware::Logger;
 use actix_web::test;
 use actix_web::web;
+use actix_web::web::Bytes;
 use actix_web::web::Data;
 use actix_web::App;
 use actix_web::HttpMessage;
-use bytes::Bytes;
 use cis_client::getby::GetBy;
 use cis_client::AsyncCisClientTrait;
 use cis_client::CisFut;
@@ -167,10 +166,10 @@ async fn avatar_test() -> Result<(), Error> {
 
     let req = test::TestRequest::post()
         .uri("/avatar/send/intermediate?@@testScope@@=authenticated")
-        .header(
+        .insert_header((
             "Content-Type",
             "multipart/form-data; boundary=\"--abbc761f78ff4d7cb7573b5a23f96ef0\"",
-        )
+        ))
         .set_payload(payload)
         .to_request();
 
@@ -179,7 +178,7 @@ async fn avatar_test() -> Result<(), Error> {
         pub uuid: String,
     }
 
-    let res_json: UuidResponse = test::read_response_json(&mut app, req).await;
+    let res_json: UuidResponse = test::call_and_read_body_json(&mut app, req).await;
 
     // make sure returned uuid is valid
     assert!(res_json.uuid.parse::<uuid::Uuid>().is_ok());
@@ -190,7 +189,7 @@ async fn avatar_test() -> Result<(), Error> {
             "/internal/save/{uuid}?@@testScope@@=authenticated",
             uuid = res_json.uuid
         ))
-        .header("Content-type", "application/json")
+        .insert_header(("Content-type", "application/json"))
         .set_json(&serde_json::json!({
             "intermediate": res_json.uuid,
             "display": "public"
@@ -204,7 +203,7 @@ async fn avatar_test() -> Result<(), Error> {
         pub url: String,
     }
 
-    let res_json: PictureResponse = test::read_response_json(&mut app, req).await;
+    let res_json: PictureResponse = test::call_and_read_body_json(&mut app, req).await;
     let mut iccp_crc = None;
 
     for size in &["raw", "528", "264", "100", "40"] {
@@ -212,32 +211,31 @@ async fn avatar_test() -> Result<(), Error> {
             .uri(&format!("{}?size={}", res_json.url, size))
             .to_request();
 
-        let mut res = test::call_service(&mut app, req).await;
+        let res = test::call_service(&mut app, req).await;
 
         assert!(res.status().is_success());
 
-        let body: ResponseBody<Body> = res.take_body().into_body();
+        let bytes: Bytes = res
+            .into_body()
+            .try_into_bytes()
+            .expect("could not read back bytes");
 
-        if let ResponseBody::Other(Body::Bytes(bytes)) = body {
-            // test that iCCP still exists in downscaled image (and it is valid)
-            let mut decoder = lodepng::Decoder::new();
-            decoder.remember_unknown_chunks(true);
+        // test that iCCP still exists in downscaled image (and it is valid)
+        let mut decoder = lodepng::Decoder::new();
+        decoder.remember_unknown_chunks(true);
 
-            assert!(decoder.decode(bytes).is_ok(), "invalid png image returned");
+        assert!(decoder.decode(bytes).is_ok(), "invalid png image returned");
 
-            let iccp_chunk = decoder
-                .info_png()
-                .get("iCCP")
-                .expect("returned image does not have a iccp chunk anymore!");
+        let iccp_chunk = decoder
+            .info_png()
+            .get("iCCP")
+            .expect("returned image does not have a iccp chunk anymore!");
 
-            // validate that the data is consistent across all images
-            if iccp_crc.is_none() {
-                iccp_crc = Some(iccp_chunk.crc());
-            } else {
-                assert_eq!(iccp_crc.unwrap(), iccp_chunk.crc());
-            }
+        // validate that the data is consistent across all images
+        if iccp_crc.is_none() {
+            iccp_crc = Some(iccp_chunk.crc());
         } else {
-            panic!("byte response expected when fetching images successfully");
+            assert_eq!(iccp_crc.unwrap(), iccp_chunk.crc());
         }
     }
 

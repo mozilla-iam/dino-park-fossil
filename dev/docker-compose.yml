@@ -1,0 +1,14 @@
+# This is used for local development only.
+
+services:
+  fossil:
+    image: dino-park-fossil:development
+    build:
+      context: ../
+      dockerfile: Dockerfile.local
+    environment:
+      DPF_SETTINGS: /root/.settings.json
+    volumes:
+    - ../dev/settings.json:/root/.settings.json
+    ports:
+    - 127.0.0.1:8083:8083

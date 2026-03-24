@@ -1,3 +1,8 @@
+// DEBT: Quoting the lint:
+//     non-local `impl` definition, `impl` blocks should be written at the same
+//     level as their item
+#![allow(non_local_definitions)]
+
 use crate::settings::AvatarSettings;
 use crate::storage::loader::Loader;
 use crate::storage::name::uuid_hash;
@@ -63,7 +68,7 @@ mod test {
     }
 
     impl Loader for DummyLoader {
-        fn load(&self, name: &str, size: &str, _: &str) -> BoxFuture<Result<Vec<u8>, Error>> {
+        fn load(&self, name: &str, size: &str, _: &str) -> BoxFuture<'_, Result<Vec<u8>, Error>> {
             let ret = if name != self.name {
                 Err(format_err!("404"))
             } else {

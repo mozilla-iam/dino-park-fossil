@@ -1,3 +1,8 @@
+// DEBT: Quoting the lint:
+//     non-local `impl` definition, `impl` blocks should be written at the same
+//     level as their item
+#![allow(non_local_definitions)]
+
 use actix_web::error::ResponseError;
 use actix_web::HttpResponse;
 use dino_park_trust::GroupsTrustError;

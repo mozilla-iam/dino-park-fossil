@@ -14,13 +14,13 @@ pub trait Saver: Sync + Send + Sized {
         prefix: &str,
         bucket: &str,
         buf: Vec<u8>,
-    ) -> BoxFuture<Result<(), Error>>;
-    fn delete(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<(), Error>>;
+    ) -> BoxFuture<'_, Result<(), Error>>;
+    fn delete(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<'_, Result<(), Error>>;
     fn delete_many(
         &self,
         names: &[String],
         prefix: &str,
         bucket: &str,
-    ) -> BoxFuture<Result<(), Error>>;
-    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> BoxFuture<Result<String, Error>>;
+    ) -> BoxFuture<'_, Result<(), Error>>;
+    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> BoxFuture<'_, Result<String, Error>>;
 }

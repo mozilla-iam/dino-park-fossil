@@ -1,3 +1,8 @@
+// DEBT: Quoting the lint:
+//     non-local `impl` definition, `impl` blocks should be written at the same
+//     level as their item
+#![allow(non_local_definitions)]
+
 use super::Loader;
 use bytes::BytesMut;
 use failure::Error;
@@ -20,7 +25,12 @@ pub struct S3Loader {
 }
 
 impl Loader for S3Loader {
-    fn load(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<Vec<u8>, Error>> {
+    fn load(
+        &self,
+        name: &str,
+        prefix: &str,
+        bucket: &str,
+    ) -> BoxFuture<'_, Result<Vec<u8>, Error>> {
         let download = GetObjectRequest {
             bucket: bucket.to_owned(),
             key: format!("{}/{}", prefix, name),

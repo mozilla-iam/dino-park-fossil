@@ -23,7 +23,7 @@ impl Saver for FilesystemSaver {
         prefix: &str,
         bucket: &str,
         buf: Vec<u8>,
-    ) -> BoxFuture<Result<(), Error>> {
+    ) -> BoxFuture<'_, Result<(), Error>> {
         let path = self.path.clone().join(bucket);
         info!("saving permanent file in {}", path.display());
 
@@ -52,7 +52,7 @@ impl Saver for FilesystemSaver {
         })
     }
 
-    fn delete(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<(), Error>> {
+    fn delete(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<'_, Result<(), Error>> {
         let path = self.path.join(bucket).join(format!("{prefix}-{name}"));
 
         let name = name.to_owned();
@@ -77,7 +77,7 @@ impl Saver for FilesystemSaver {
         names: &[String],
         prefix: &str,
         bucket: &str,
-    ) -> BoxFuture<Result<(), Error>> {
+    ) -> BoxFuture<'_, Result<(), Error>> {
         let prefix = prefix.to_owned();
         let bucket = bucket.to_owned();
 
@@ -86,7 +86,7 @@ impl Saver for FilesystemSaver {
         futures::future::try_join_all(names).map_ok(|_| ()).boxed()
     }
 
-    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> BoxFuture<Result<String, Error>> {
+    fn save_tmp(&self, bucket: &str, buf: Vec<u8>) -> BoxFuture<'_, Result<String, Error>> {
         info!("saving temporary file in bucket '{}'", bucket);
 
         let path = self.path.join(bucket);

@@ -8,5 +8,6 @@ use failure::Error;
 use futures::future::BoxFuture;
 
 pub trait Loader: Sync + Send + Sized {
-    fn load(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<Vec<u8>, Error>>;
+    fn load(&self, name: &str, prefix: &str, bucket: &str)
+        -> BoxFuture<'_, Result<Vec<u8>, Error>>;
 }

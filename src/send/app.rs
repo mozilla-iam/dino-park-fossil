@@ -33,6 +33,8 @@ pub struct Save {
     pub old_url: Option<String>,
 }
 
+// DEBT: Remove allow `dead_code` after IAM-1908.
+#[allow(dead_code)]
 #[derive(Deserialize)]
 pub struct Avatar {
     pub data_uri: String,

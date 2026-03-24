@@ -11,7 +11,12 @@ pub struct FilesystemLoader {
 }
 
 impl Loader for FilesystemLoader {
-    fn load(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<Result<Vec<u8>, Error>> {
+    fn load(
+        &self,
+        name: &str,
+        prefix: &str,
+        bucket: &str,
+    ) -> BoxFuture<'_, Result<Vec<u8>, Error>> {
         info!("reading file in bucket '{}'", bucket);
 
         let path = self.path.join(bucket).join(format!("{prefix}-{name}"));

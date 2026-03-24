@@ -1,3 +1,8 @@
+// DEBT: Quoting the lint:
+//     non-local `impl` definition, `impl` blocks should be written at the same
+//     level as their item
+#![allow(non_local_definitions)]
+
 use crate::send::app::ChangeDisplay;
 use crate::send::app::Save;
 use crate::send::operations::delete;
@@ -146,28 +151,28 @@ mod test {
         save: bool,
     }
     impl Saver for DummySaver {
-        fn save(&self, _: &str, _: &str, _: &str, _: Vec<u8>) -> BoxFuture<Result<(), Error>> {
+        fn save(&self, _: &str, _: &str, _: &str, _: Vec<u8>) -> BoxFuture<'_, Result<(), Error>> {
             let ret = match self.save {
                 true => Ok(()),
                 false => Err(format_err!("doom")),
             };
             Box::pin(async move { ret })
         }
-        fn delete(&self, _: &str, _: &str, _: &str) -> BoxFuture<Result<(), Error>> {
+        fn delete(&self, _: &str, _: &str, _: &str) -> BoxFuture<'_, Result<(), Error>> {
             let ret = match self.delete {
                 true => Ok(()),
                 false => Err(format_err!("doom")),
             };
             Box::pin(async move { ret })
         }
-        fn delete_many(&self, _: &[String], _: &str, _: &str) -> BoxFuture<Result<(), Error>> {
+        fn delete_many(&self, _: &[String], _: &str, _: &str) -> BoxFuture<'_, Result<(), Error>> {
             let ret = match self.delete {
                 true => Ok(()),
                 false => Err(format_err!("doom")),
             };
             Box::pin(async move { ret })
         }
-        fn save_tmp(&self, _: &str, _: Vec<u8>) -> BoxFuture<Result<String, Error>> {
+        fn save_tmp(&self, _: &str, _: Vec<u8>) -> BoxFuture<'_, Result<String, Error>> {
             Box::pin(async { Ok(String::from("936DA01F9ABD4d9d80C702AF85C822A8")) })
         }
     }
