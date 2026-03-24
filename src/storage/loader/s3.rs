@@ -25,7 +25,12 @@ pub struct S3Loader {
 }
 
 impl Loader for S3Loader {
-    fn load(&self, name: &str, prefix: &str, bucket: &str) -> BoxFuture<'_, Result<Vec<u8>, Error>> {
+    fn load(
+        &self,
+        name: &str,
+        prefix: &str,
+        bucket: &str,
+    ) -> BoxFuture<'_, Result<Vec<u8>, Error>> {
         let download = GetObjectRequest {
             bucket: bucket.to_owned(),
             key: format!("{}/{}", prefix, name),

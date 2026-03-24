@@ -68,7 +68,7 @@ mod test {
     }
 
     impl Loader for DummyLoader {
-        fn load(&self, name: &str, size: &str, _: &str) -> BoxFuture<Result<Vec<u8>, Error>> {
+        fn load(&self, name: &str, size: &str, _: &str) -> BoxFuture<'_, Result<Vec<u8>, Error>> {
             let ret = if name != self.name {
                 Err(format_err!("404"))
             } else {
